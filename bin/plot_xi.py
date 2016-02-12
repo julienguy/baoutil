@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import numpy as np
-import pylab
+import matplotlib.pyplot as plt
 import sys
 import argparse
 import string
@@ -18,6 +18,9 @@ parser.add_argument('--cov', type = str, default = None, required=False,
                         help = 'baofit cov (default is guessed from data)')
 parser.add_argument('--res', type = str, default = None, required=False,
                         help = 'baofit residuals file to plot model')
+parser.add_argument('--out', type = str, default = None, required=False,
+		                        help = 'output prefix')
+
 
 args = parser.parse_args()
 
@@ -45,11 +48,11 @@ rbin=4
 
 nw=len(wedges)
 if nw > 1 :
-    f, ax = pylab.subplots(nw, sharex=True, sharey=False)
+    f, ax = plt.subplots(nw, sharex=True, sharey=False)
 else :
-    f=pylab.figure()
+    f=plt.figure()
     ax=[]
-    ax.append(pylab.subplot(1,1,1))
+    ax.append(plt.subplot(1,1,1))
 
 
 
@@ -67,7 +70,10 @@ for w,wedge in zip(range(nw),wedges) :
     ax[w].set_title(r"$%2.1f < \mu < %2.1f$"%(wedges[w][0],wedges[w][1]))
     ax[w].set_ylabel(r"$r^2 \xi(r)$  [Mpc$^2$ h$^{-2}$]")
 
-pylab.xlabel(r"$r$  [Mpc h$^{-1}$]")
+plt.xlabel(r"$r$  [Mpc h$^{-1}$]")
 
-pylab.show()
+plt.show()
+
+if args.out != None:
+	plt.savefig(args.out+".png",bbox_inches="tight")
 
