@@ -54,9 +54,14 @@ def read_baofit_cov(filename,n2d,convert=True) :
         fits_filename="%s-cov.fits"%base_filename
     
     if os.path.isfile(fits_filename) :
-        print "using %s"%fits_filename
-        print "NEED TO CHECK DATE"
-        return fits.open(fits_filename)[0].data
+        # check date
+        date_of_cov_filename  = os.path.getmtime(cov_filename)
+        date_of_fits_filename =  os.path.getmtime(fits_filename)
+        if date_of_fits_filename > date_of_cov_filename :
+            print "using %s"%fits_filename
+            return fits.open(fits_filename)[0].data
+        else :
+            print "%s exists, but use %s which is more recent"%(fits_filename,cov_filename)
     
     if not os.path.isfile(cov_filename) :
         print "warning, %s doesn't exist, returns null matrix"%cov_filename
@@ -80,7 +85,7 @@ def read_baofit_cov(filename,n2d,convert=True) :
         cov[j,i]=c
     
     if convert :
-        fits.writeto(fits_filename,cov)
+        fits.writeto(fits_filename,cov,clobber=True)
         print "wrote %s"%fits_filename
     
     return cov
