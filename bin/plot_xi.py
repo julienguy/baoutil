@@ -26,6 +26,8 @@ parser.add_argument('--res', type = str, default = None, required=False, nargs='
                     help = 'baofit residuals file to plot model')
 parser.add_argument('--out', type = str, default = None, required=False,
 		                        help = 'output prefix')
+parser.add_argument('--chi2', action="store_true",
+		                        help = 'compute chi2 of wedges (if only one data set and model)')
 
 
 args = parser.parse_args()
@@ -108,14 +110,21 @@ for w,wedge in zip(range(nw),wedges) :
     
 
     for d,c in zip(data,data_colors) :
-        r,xidata,xierr=compute_wedge(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin)        
+        r,xidata,xierr,wedge_cov=compute_wedge(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin)        
         scale=r**2
         ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=c)
     
     for model,c in zip(models,model_colors)  :
-        r,ximod,junk=compute_wedge(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin)
+        r,ximod,junk,junk=compute_wedge(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin)
         scale=r**2
         ax[w].plot(r,scale*ximod,"-",color=c)
+    
+    if args.chi2 and len(data)==1 and len(models)==1 :
+        weight=np.linalg.inv(wedge_cov)
+        res=xidata-ximod
+        chi2=np.inner(res,weight.dot(res))
+        ndata=res.size
+        print "chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata)
     
     ax[w].set_title(r"$%2.1f < \mu < %2.1f$"%(wedges[w][0],wedges[w][1]))
     ax[w].set_ylabel(r"$r^2 \xi(r)$  [Mpc$^2$ h$^{-2}$]")
