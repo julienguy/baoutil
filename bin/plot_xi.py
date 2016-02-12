@@ -12,7 +12,7 @@ from baoutil.wedge import compute_wedge
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-parser.add_argument('-d','--data', type = str, default = None, required=True,
+parser.add_argument('-d','--data', type = str, default = None, required=True, nargs='*', action='append',
                         help = 'baofit data')
 parser.add_argument('-c','--cov', type = str, default = None, required=False,
                         help = 'baofit cov (default is guessed from data)')
@@ -32,20 +32,26 @@ args = parser.parse_args()
 
 cov_filename=args.cov
 
+
+
+data=[]
+for d2 in args.data :
+    for d1 in d2 :
+       data.append(read_baofit_data(d1))
+
 if cov_filename is None :
-    if args.data.find(".data") :
-        cov_filename=string.replace(args.data,".data",".cov")
+    if args.data[0][0].find(".data") :
+        cov_filename=string.replace(args.data[0][0],".data",".cov")
     else :
         cov_filename=args.data+".cov"
-data = read_baofit_data(args.data)        
-cov  = read_baofit_cov(cov_filename,n2d=data.size,convert=True)
+cov  = read_baofit_cov(cov_filename,n2d=data[0].size,convert=True)
 
 models=[]
 if args.res is not None :
     for res2 in args.res :
         for res in res2 :
-            mod = read_baofit_model(res,n2d=data.size)
-            if data.size != mod.size :
+            mod = read_baofit_model(res,n2d=data[0].size)
+            if data[0].size != mod.size :
                 print "error data and model don't have same size"
                 sys.exit(12)
             models.append(mod)
@@ -94,18 +100,22 @@ else :
     ax=[]
     ax.append(plt.subplot(1,1,1))
 
-
+data_colors=["b","r","g","k"]
+model_colors=["r","k","k","k"]
 
 for w,wedge in zip(range(nw),wedges) :
     print "plotting mu",wedge
     
-    r,xidata,xierr=compute_wedge(data,cov,murange=wedge,rrange=rrange,rbin=args.rbin)
-    scale=r**2
-    ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color="b")
 
-    for model in models  :
-        r2,ximod,junk=compute_wedge(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin)
-        ax[w].plot(r,scale*ximod,"-",color="r")
+    for d,c in zip(data,data_colors) :
+        r,xidata,xierr=compute_wedge(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin)        
+        scale=r**2
+        ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=c)
+    
+    for model,c in zip(models,model_colors)  :
+        r,ximod,junk=compute_wedge(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin)
+        scale=r**2
+        ax[w].plot(r,scale*ximod,"-",color=c)
     
     ax[w].set_title(r"$%2.1f < \mu < %2.1f$"%(wedges[w][0],wedges[w][1]))
     ax[w].set_ylabel(r"$r^2 \xi(r)$  [Mpc$^2$ h$^{-2}$]")
