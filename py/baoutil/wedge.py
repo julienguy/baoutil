@@ -71,4 +71,4 @@ def compute_wedge(input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],rbin=4)
     
     res=H.dot(wedge_data)
     cov=H.dot(wedge_cov.dot(H.T))
-    return r,res,np.sqrt(np.diag(cov).copy())
+    return r,res,np.sqrt(np.diag(cov).copy()),cov
