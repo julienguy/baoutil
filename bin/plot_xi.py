@@ -10,6 +10,10 @@ from baoutil.io import read_baofit_cov
 from baoutil.io import read_baofit_model
 from baoutil.wedge import compute_wedge
 
+plt.rcParams["font.family"]="serif"
+plt.rcParams["font.size"]=16.0
+
+
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 parser.add_argument('-d','--data', type = str, default = None, required=True, nargs='*', action='append',
@@ -102,6 +106,8 @@ else :
     ax=[]
     ax.append(plt.subplot(1,1,1))
 
+ax[nw/2].set_ylabel(r"$r^2 \xi(r)$  [Mpc$^2$ h$^{-2}$]")
+
 data_colors=["b","r","g","k"]
 model_colors=["r","k","k","k"]
 
@@ -127,7 +133,7 @@ for w,wedge in zip(range(nw),wedges) :
         print "chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata)
     
     ax[w].set_title(r"$%2.1f < \mu < %2.1f$"%(wedges[w][0],wedges[w][1]))
-    ax[w].set_ylabel(r"$r^2 \xi(r)$  [Mpc$^2$ h$^{-2}$]")
+
 
 plt.xlabel(r"$r$  [Mpc h$^{-1}$]")
 
