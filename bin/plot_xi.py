@@ -18,6 +18,8 @@ parser.add_argument('-c','--cov', type = str, default = None, required=False,
                         help = 'baofit cov (default is guessed from data)')
 parser.add_argument('--mu', type = str, default = None, required=False,
                         help = 'mu range for wedge of the form "mumin:mumax')
+parser.add_argument('--rrange', type = str, default = None, required=False,
+                        help = 'r range for wedge of the form "rmin:rmax')
 parser.add_argument('--res', type = str, default = None, required=False,
                         help = 'baofit residuals file to plot model')
 
@@ -41,7 +43,7 @@ if args.res is not None :
 else :
     mod = None
 
-rrange=[10,180]
+
 
 if args.mu :
     try :
@@ -58,6 +60,22 @@ if args.mu :
         sys.exit(12)
 else :
     wedges= [[0.8,1.0],[0.5,0.8],[0.0,0.5]]
+
+if args.rrange :
+    try :
+        vals=string.split(args.rrange,":")
+        if len(vals)!=2 :
+            print "incorrect format for r range '%s', expect rmin:rmax"%args.rrange
+            sys.exit(12)
+        rmin=string.atof(vals[0])
+        rmax=string.atof(vals[1])
+        rrange=[rmin,rmax]
+    except ValueError,e:
+        print e
+        print "incorrect format for r range '%s', expect rmin:rmax"%args.rrange
+        sys.exit(12)
+else :
+    rrange=[10,180]
 
 rbin=4
 
