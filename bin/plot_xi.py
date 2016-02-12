@@ -12,10 +12,12 @@ from baoutil.wedge import compute_wedge
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-parser.add_argument('--data', type = str, default = None, required=True,
+parser.add_argument('-d','--data', type = str, default = None, required=True,
                         help = 'baofit data')
-parser.add_argument('--cov', type = str, default = None, required=False,
+parser.add_argument('-c','--cov', type = str, default = None, required=False,
                         help = 'baofit cov (default is guessed from data)')
+parser.add_argument('--mu', type = str, default = None, required=False,
+                        help = 'mu range for wedge of the form "mumin:mumax')
 parser.add_argument('--res', type = str, default = None, required=False,
                         help = 'baofit residuals file to plot model')
 
@@ -40,7 +42,23 @@ else :
     mod = None
 
 rrange=[10,180]
-wedges= [[0.8,1.0],[0.5,0.8],[0.0,0.5]]
+
+if args.mu :
+    try :
+        vals=string.split(args.mu,":")
+        if len(vals)!=2 :
+            print "incorrect format for mu range '%s', expect mumin:mumax"%args.mu
+            sys.exit(12)
+        mumin=string.atof(vals[0])
+        mumax=string.atof(vals[1])
+        wedges=[[mumin,mumax]]
+    except ValueError,e:
+        print e
+        print "incorrect format for mu range '%s', expect mumin:mumax"%args.mu
+        sys.exit(12)
+else :
+    wedges= [[0.8,1.0],[0.5,0.8],[0.0,0.5]]
+
 rbin=4
 
 nw=len(wedges)
