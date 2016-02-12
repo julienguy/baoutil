@@ -35,11 +35,14 @@ def read_baofit_model(res_filename,n2d=2500) :
     return res
 
 
-def read_baofit_cov(filename,convert=True) :
+def read_baofit_cov(filename,n2d,convert=True) :
     print "reading cov in %s"%filename
     
     if filename.find(".fits")>0 :
-        return fits.open(filename)[0].data
+        cov = fits.open(filename)[0].data
+        if cov.shape != (n2d,n2d) :
+            print "error, incorrect matrix size"
+            sys.exit(12)
     
     if filename.find(".cov")>0 :
         cov_filename=filename
@@ -56,8 +59,8 @@ def read_baofit_cov(filename,convert=True) :
         return fits.open(fits_filename)[0].data
     
     if not os.path.isfile(cov_filename) :
-        print "error %s doesn't exist"%cov_filename
-        sys.exit(12)
+        print "warning, %s doesn't exist, returns null matrix"%cov_filename
+        return np.zeros((n2d,n2d))
 
     print "reading %s"%cov_filename
     vals=np.loadtxt(cov_filename).T
@@ -68,6 +71,9 @@ def read_baofit_cov(filename,convert=True) :
     
     n=max(np.max(ii),np.max(jj))+1
     cov=np.zeros((n,n))
+    if n != n2d :
+        print "error, incorrect matrix size"
+        sys.exit(12)
     
     for i,j,c in zip(ii,jj,cc) :
         cov[i,j]=c

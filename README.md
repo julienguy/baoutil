@@ -8,7 +8,7 @@ usage
 export PATH=$SOFTDIR/baoutil/bin:${PATH}
 export PYTHONPATH=$SOFTDIR/baoutil/py:${PYTHONPATH}
 
-plot_xi.py --data XXX --res XXX_residuals.dat
+plot_xi.py --data XXX(.data) ( --res XXX_residuals.dat )
 
 ```
 

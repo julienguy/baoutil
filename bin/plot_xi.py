@@ -29,7 +29,8 @@ if cov_filename is None :
     else :
         cov_filename=args.data+".cov"
 data = read_baofit_data(args.data)        
-cov  = read_baofit_cov(cov_filename)
+cov  = read_baofit_cov(cov_filename,n2d=data.size,convert=True)
+
 if args.res is not None :
     mod = read_baofit_model(args.res,n2d=data.size)
     if data.size != mod.size :
