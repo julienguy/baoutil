@@ -18,8 +18,10 @@ parser.add_argument('-c','--cov', type = str, default = None, required=False,
                         help = 'baofit cov (default is guessed from data)')
 parser.add_argument('--mu', type = str, default = None, required=False,
                         help = 'mu range for wedge of the form "mumin:mumax')
-parser.add_argument('--rrange', type = str, default = None, required=False,
+parser.add_argument('--rrange', type = str, default = "10:180", required=False,
                         help = 'r range for wedge of the form "rmin:rmax')
+parser.add_argument('--rbin', type = float, default = 4.0, required=False,
+                        help = 'r bin size')
 parser.add_argument('--res', type = str, default = None, required=False,
                         help = 'baofit residuals file to plot model')
 
@@ -77,7 +79,6 @@ if args.rrange :
 else :
     rrange=[10,180]
 
-rbin=4
 
 nw=len(wedges)
 if nw > 1 :
@@ -92,12 +93,12 @@ else :
 for w,wedge in zip(range(nw),wedges) :
     print "plotting mu",wedge
     
-    r,xidata,xierr=compute_wedge(data,cov,murange=wedge,rrange=rrange,rbin=rbin)
+    r,xidata,xierr=compute_wedge(data,cov,murange=wedge,rrange=rrange,rbin=args.rbin)
     scale=r**2
     ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color="b")
 
     if mod is not None :
-        r2,ximod,junk=compute_wedge(mod,cov,murange=wedge,rrange=rrange,rbin=rbin)
+        r2,ximod,junk=compute_wedge(mod,cov,murange=wedge,rrange=rrange,rbin=args.rbin)
         ax[w].plot(r,scale*ximod,"-",color="r")
     
     ax[w].set_title(r"$%2.1f < \mu < %2.1f$"%(wedges[w][0],wedges[w][1]))
