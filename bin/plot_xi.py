@@ -22,8 +22,8 @@ parser.add_argument('--rrange', type = str, default = "10:180", required=False,
                         help = 'r range for wedge of the form "rmin:rmax')
 parser.add_argument('--rbin', type = float, default = 4.0, required=False,
                         help = 'r bin size')
-parser.add_argument('--res', type = str, default = None, required=False,
-                        help = 'baofit residuals file to plot model')
+parser.add_argument('--res', type = str, default = None, required=False, nargs='*', action='append', 
+                    help = 'baofit residuals file to plot model')
 parser.add_argument('--out', type = str, default = None, required=False,
 		                        help = 'output prefix')
 
@@ -40,13 +40,16 @@ if cov_filename is None :
 data = read_baofit_data(args.data)        
 cov  = read_baofit_cov(cov_filename,n2d=data.size,convert=True)
 
+models=[]
 if args.res is not None :
-    mod = read_baofit_model(args.res,n2d=data.size)
-    if data.size != mod.size :
-        print "error data and model don't have same size"
-        sys.exit(12)
-else :
-    mod = None
+    for res2 in args.res :
+        for res in res2 :
+            mod = read_baofit_model(res,n2d=data.size)
+            if data.size != mod.size :
+                print "error data and model don't have same size"
+                sys.exit(12)
+            models.append(mod)
+
 
 
 
@@ -100,8 +103,8 @@ for w,wedge in zip(range(nw),wedges) :
     scale=r**2
     ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color="b")
 
-    if mod is not None :
-        r2,ximod,junk=compute_wedge(mod,cov,murange=wedge,rrange=rrange,rbin=args.rbin)
+    for model in models  :
+        r2,ximod,junk=compute_wedge(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin)
         ax[w].plot(r,scale*ximod,"-",color="r")
     
     ax[w].set_title(r"$%2.1f < \mu < %2.1f$"%(wedges[w][0],wedges[w][1]))
