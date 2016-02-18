@@ -106,7 +106,7 @@ else :
     ax=[]
     ax.append(plt.subplot(1,1,1))
 
-ax[nw/2].set_ylabel(r"$r^2 \xi(r)$  [Mpc$^2$ h$^{-2}$]")
+ax[nw/2].set_ylabel(r"$r^2 \xi(r)\mathrm{[h^{-2}Mpc^2]}$")
 
 data_colors=["b","r","g","k"]
 model_colors=["r","k","k","k"]
@@ -119,6 +119,7 @@ for w,wedge in zip(range(nw),wedges) :
         r,xidata,xierr,wedge_cov=compute_wedge(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin)        
         scale=r**2
         ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=c)
+	ax[w].grid(b=True)
     
     for model,c in zip(models,model_colors)  :
         r,ximod,junk,junk=compute_wedge(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin)
@@ -135,10 +136,10 @@ for w,wedge in zip(range(nw),wedges) :
     ax[w].set_title(r"$%2.1f < \mu < %2.1f$"%(wedges[w][0],wedges[w][1]))
 
 
-plt.xlabel(r"$r$  [Mpc h$^{-1}$]")
+plt.xlabel(r"$r\mathrm{[h^{-1}Mpc]}$")
 
 plt.show()
 
 if args.out != None:
-	plt.savefig(args.out+".png",bbox_inches="tight")
+	f.savefig(args.out+".png",bbox_inches="tight")
 
