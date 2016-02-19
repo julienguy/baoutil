@@ -33,6 +33,9 @@ parser.add_argument('--out', type = str, default = None, required=False,
 parser.add_argument('--chi2', action="store_true",
 		                        help = 'compute chi2 of wedges (if only one data set and model)')
 
+parser.add_argument('--noshow', action="store_true",
+		            help = 'prevent the figure window from displaying')
+
 
 args = parser.parse_args()
 
@@ -138,7 +141,7 @@ for w,wedge in zip(range(nw),wedges) :
 
 plt.xlabel(r"$r\mathrm{[h^{-1}Mpc]}$")
 
-plt.show()
+if not args.noshow: plt.show()
 
 if args.out != None:
 	f.savefig(args.out+".png",bbox_inches="tight")
