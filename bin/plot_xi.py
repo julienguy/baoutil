@@ -9,6 +9,7 @@ from baoutil.io import read_baofit_data
 from baoutil.io import read_baofit_cov
 from baoutil.io import read_baofit_model
 from baoutil.wedge import compute_wedge
+from baoutil.wedge import compute_wedge_with_ivar
 
 plt.rcParams["font.family"]="serif"
 plt.rcParams["font.size"]=16.0
@@ -31,10 +32,13 @@ parser.add_argument('--res', type = str, default = None, required=False, nargs='
 parser.add_argument('--out', type = str, default = None, required=False,
 		                        help = 'output prefix')
 parser.add_argument('--chi2', action="store_true",
-		                        help = 'compute chi2 of wedges (if only one data set and model)')
+		help = 'compute chi2 of wedges (if only one data set and model)')
 
 parser.add_argument('--noshow', action="store_true",
 		            help = 'prevent the figure window from displaying')
+
+parser.add_argument('--ivar_weight', action="store_true",
+		            help = 'use inverse variance to combine the bins')
 
 
 args = parser.parse_args()
@@ -119,14 +123,15 @@ for w,wedge in zip(range(nw),wedges) :
     
 
     for d,c in zip(data,data_colors) :
-        r,xidata,xierr,wedge_cov=compute_wedge(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin)        
-        scale=r**2
+	if not args.ivar_weight: r,xidata,xierr,wedge_cov=compute_wedge(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin)      
+	else: r,xidata,xierr,wedge_cov=compute_wedge_with_ivar(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin) 
+	scale=r**2
         ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=c)
 	ax[w].grid(b=True)
     
     for model,c in zip(models,model_colors)  :
-        r,ximod,junk,junk=compute_wedge(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin)
-        scale=r**2
+	if not args.ivar_weight: r,ximod,junk,junk=compute_wedge(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin)
+	else: r,ximod,junk,junk=compute_wedge_with_ivar(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin)
         ax[w].plot(r,scale*ximod,"-",color=c)
     
     if args.chi2 and len(data)==1 and len(models)==1 :
