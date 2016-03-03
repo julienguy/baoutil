@@ -141,7 +141,7 @@ for w,wedge in zip(range(nw),wedges) :
         ndata=res.size
         print "chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata)
     
-    ax[w].set_title(r"$%2.1f < \mu < %2.1f$"%(wedges[w][0],wedges[w][1]))
+    ax[w].set_title(r"$%2.2f < \mu < %2.2f$"%(wedges[w][0],wedges[w][1]))
 
 
 plt.xlabel(r"$r\mathrm{[h^{-1}Mpc]}$")
