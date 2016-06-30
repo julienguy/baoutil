@@ -22,7 +22,7 @@ parser.add_argument('-d','--data', type = str, default = None, required=True, na
 parser.add_argument('-c','--cov', type = str, default = None, required=False,
                         help = 'baofit cov (default is guessed from data)')
 parser.add_argument('--mu', type = str, default = None, required=False,
-                        help = 'mu range for wedge of the form "mumin:mumax')
+                        help = 'mu range for wedge of the form "mumin:mumax,mumin:mumax ...')
 parser.add_argument('--rrange', type = str, default = "10:180", required=False,
                         help = 'r range for wedge of the form "rmin:rmax')
 parser.add_argument('--rbin', type = float, default = 4.0, required=False,
@@ -73,14 +73,18 @@ if args.res is not None :
 
 
 if args.mu :
+    wedges=[]
     try :
-        vals=string.split(args.mu,":")
-        if len(vals)!=2 :
-            print "incorrect format for mu range '%s', expect mumin:mumax"%args.mu
-            sys.exit(12)
-        mumin=string.atof(vals[0])
-        mumax=string.atof(vals[1])
-        wedges=[[mumin,mumax]]
+        wedge_strings=string.split(args.mu,",")
+        for wedge_string in wedge_strings :
+            print wedge_string
+            vals=string.split(wedge_string,":")
+            if len(vals)!=2 :
+                print "incorrect format for mu range '%s', expect mumin:mumax"%args.mu
+                sys.exit(12)
+            mumin=string.atof(vals[0])
+            mumax=string.atof(vals[1])
+            wedges.append([mumin,mumax])
     except ValueError,e:
         print e
         print "incorrect format for mu range '%s', expect mumin:mumax"%args.mu
@@ -121,25 +125,48 @@ model_colors=["r","k","k","k"]
 for w,wedge in zip(range(nw),wedges) :
     print "plotting mu",wedge
     
-
+    xidatav=[]
+    
+    
+    first=True
     for d,c in zip(data,data_colors) :
 	if not args.ivar_weight: r,xidata,xierr,wedge_cov=compute_wedge(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin)      
 	else: r,xidata,xierr,wedge_cov=compute_wedge_with_ivar(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin) 
 	scale=r**2
-        ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=c)
+        if first :
+            ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=c)
+        else :
+            ax[w].plot(r,scale*xidata,"o",color=c)
 	ax[w].grid(b=True)
+        
+        xidatav.append(xidata)
+        first=False
     
     for model,c in zip(models,model_colors)  :
 	if not args.ivar_weight: r,ximod,junk,junk=compute_wedge(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin)
 	else: r,ximod,junk,junk=compute_wedge_with_ivar(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin)
         ax[w].plot(r,scale*ximod,"-",color=c)
     
+    if args.chi2 and len(data)==1 and len(models)==0 :
+        weight=np.linalg.inv(wedge_cov)
+        res=xidata
+        chi2=np.inner(res,weight.dot(res))
+        ndata=res.size
+        print "(data-0) chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata)
+        
     if args.chi2 and len(data)==1 and len(models)==1 :
         weight=np.linalg.inv(wedge_cov)
         res=xidata-ximod
         chi2=np.inner(res,weight.dot(res))
         ndata=res.size
-        print "chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata)
+        print "(data-model) chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata)
+    
+    if args.chi2 and len(data)==2 :
+        weight=np.linalg.inv(wedge_cov)
+        res=xidatav[0]-xidatav[1]
+        chi2=np.inner(res,weight.dot(res))
+        ndata=res.size
+        print "(data0-data1) chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata)
     
     ax[w].set_title(r"$%2.2f < \mu < %2.2f$"%(wedges[w][0],wedges[w][1]))
 
