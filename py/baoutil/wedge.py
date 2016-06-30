@@ -8,7 +8,7 @@ def block(covmat,indices) :
         res[i,:]=covmat[indices[i],indices]
     return res
 
-def compute_wedge(input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],rbin=4) : 
+def compute_wedge(input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],rbin=4,rpmin=0) : 
     
     # indexing
     n2d=input_xi2d.size
@@ -35,7 +35,7 @@ def compute_wedge(input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],rbin=4)
     nr=int((rrange[1]-rrange[0])/rbin)
     r=rrange[0]+rbin/2+np.arange(nr)*rbin
     
-    wedge_indices=np.where((mu_max>=murange[0])&(mu_min<=murange[1])&(rr_max>=rrange[0])&(rr_min<=rrange[1]))[0]
+    wedge_indices=np.where((mu_max>=murange[0])&(mu_min<=murange[1])&(rr_max>=rrange[0])&(rr_min<=rrange[1])&(rp>rpmin))[0]
     wedge_data=input_xi2d[wedge_indices]
     rr=rr[wedge_indices]
     rt=rt[wedge_indices]
@@ -75,7 +75,7 @@ def compute_wedge(input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],rbin=4)
 
 
 
-def compute_wedge_with_ivar(input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],rbin=4) : 
+def compute_wedge_with_ivar(input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],rbin=4,rpmin=0) : 
     
     # indexing
     n2d=input_xi2d.size
@@ -102,7 +102,7 @@ def compute_wedge_with_ivar(input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,18
     nr=int((rrange[1]-rrange[0])/rbin)
     r=rrange[0]+rbin/2+np.arange(nr)*rbin
     
-    wedge_indices=np.where((mu_max>=murange[0])&(mu_min<=murange[1])&(rr_max>=rrange[0])&(rr_min<=rrange[1]))[0]
+    wedge_indices=np.where((mu_max>=murange[0])&(mu_min<=murange[1])&(rr_max>=rrange[0])&(rr_min<=rrange[1])&(rp>rpmin))[0]
     wedge_data=input_xi2d[wedge_indices]
     rr=rr[wedge_indices]
     rt=rt[wedge_indices]

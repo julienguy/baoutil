@@ -27,6 +27,8 @@ parser.add_argument('--rrange', type = str, default = "10:180", required=False,
                         help = 'r range for wedge of the form "rmin:rmax')
 parser.add_argument('--rbin', type = float, default = 4.0, required=False,
                         help = 'r bin size')
+parser.add_argument('--rpmin', type = float, default = 0, required=False,
+                        help = 'min r_parallel')
 parser.add_argument('--res', type = str, default = None, required=False, nargs='*', action='append', 
                     help = 'baofit residuals file to plot model')
 parser.add_argument('--out', type = str, default = None, required=False,
@@ -58,6 +60,8 @@ if cov_filename is None :
     else :
         cov_filename=args.data+".cov"
 cov  = read_baofit_cov(cov_filename,n2d=data[0].size,convert=True)
+
+
 
 models=[]
 if args.res is not None :
@@ -130,8 +134,8 @@ for w,wedge in zip(range(nw),wedges) :
     
     first=True
     for d,c in zip(data,data_colors) :
-	if not args.ivar_weight: r,xidata,xierr,wedge_cov=compute_wedge(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin)      
-	else: r,xidata,xierr,wedge_cov=compute_wedge_with_ivar(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin) 
+	if not args.ivar_weight: r,xidata,xierr,wedge_cov=compute_wedge(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)      
+	else: r,xidata,xierr,wedge_cov=compute_wedge_with_ivar(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin) 
 	scale=r**2
         if first :
             ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=c)
@@ -143,8 +147,8 @@ for w,wedge in zip(range(nw),wedges) :
         first=False
     
     for model,c in zip(models,model_colors)  :
-	if not args.ivar_weight: r,ximod,junk,junk=compute_wedge(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin)
-	else: r,ximod,junk,junk=compute_wedge_with_ivar(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin)
+	if not args.ivar_weight: r,ximod,junk,junk=compute_wedge(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
+	else: r,ximod,junk,junk=compute_wedge_with_ivar(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
         ax[w].plot(r,scale*ximod,"-",color=c)
     
     if args.chi2 and len(data)==1 and len(models)==0 :
