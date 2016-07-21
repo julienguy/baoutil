@@ -162,7 +162,7 @@ for w,wedge in zip(range(nw),wedges) :
         first=False
     
     for model,c in zip(models,model_colors)  :
-	if not args.ivar_weight: r,ximod,junk,junk=compute_wedge(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
+	if args.no_ivar_weight: r,ximod,junk,junk=compute_wedge(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
 	else: r,ximod,junk,junk=compute_wedge_with_ivar(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
         if args.flip :
             ax[w].plot(r,-scale*ximod,"-",color=c)
