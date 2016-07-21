@@ -38,9 +38,13 @@ parser.add_argument('--chi2', action="store_true",
 
 parser.add_argument('--noshow', action="store_true",
 		            help = 'prevent the figure window from displaying')
+parser.add_argument('--flip', action="store_true",
+		            help = 'flip plot (useful for Lya-QSO cross-corr)')
 
-parser.add_argument('--ivar_weight', action="store_true",
-		            help = 'use inverse variance to combine the bins')
+#parser.add_argument('--ivar_weight', action="store_true",
+# help = 'use inverse variance to combine the bins')
+parser.add_argument('--no_ivar_weight', action="store_true",
+                    help = 'do not use inverse variance to combine the bins')
 
 
 args = parser.parse_args()
@@ -121,7 +125,10 @@ else :
     ax=[]
     ax.append(plt.subplot(1,1,1))
 
-ax[nw/2].set_ylabel(r"$r^2 \xi(r)\mathrm{[h^{-2}Mpc^2]}$")
+if args.flip :
+    ax[nw/2].set_ylabel(r"$-r^2 \xi(r)\mathrm{[h^{-2}Mpc^2]}$")
+else :
+    ax[nw/2].set_ylabel(r"$r^2 \xi(r)\mathrm{[h^{-2}Mpc^2]}$")
 
 data_colors=["b","r","g","k"]
 model_colors=["r","k","k","k"]
@@ -134,13 +141,21 @@ for w,wedge in zip(range(nw),wedges) :
     
     first=True
     for d,c in zip(data,data_colors) :
-	if not args.ivar_weight: r,xidata,xierr,wedge_cov=compute_wedge(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)      
-	else: r,xidata,xierr,wedge_cov=compute_wedge_with_ivar(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin) 
+	if args.no_ivar_weight: 
+            r,xidata,xierr,wedge_cov=compute_wedge(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)      
+	else: 
+            r,xidata,xierr,wedge_cov=compute_wedge_with_ivar(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin) 
 	scale=r**2
         if first :
-            ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=c)
+            if args.flip :
+                ax[w].errorbar(r,-scale*xidata,scale*xierr,fmt="o",color=c)
+            else :
+                ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=c)
         else :
-            ax[w].plot(r,scale*xidata,"o",color=c)
+             if args.flip :
+                 ax[w].plot(r,-scale*xidata,"o",color=c)
+             else :
+                 ax[w].plot(r,scale*xidata,"o",color=c)
 	ax[w].grid(b=True)
         
         xidatav.append(xidata)
@@ -149,7 +164,10 @@ for w,wedge in zip(range(nw),wedges) :
     for model,c in zip(models,model_colors)  :
 	if not args.ivar_weight: r,ximod,junk,junk=compute_wedge(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
 	else: r,ximod,junk,junk=compute_wedge_with_ivar(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
-        ax[w].plot(r,scale*ximod,"-",color=c)
+        if args.flip :
+            ax[w].plot(r,-scale*ximod,"-",color=c)
+        else :
+            ax[w].plot(r,scale*ximod,"-",color=c)
     
     if args.chi2 and len(data)==1 and len(models)==0 :
         weight=np.linalg.inv(wedge_cov)
