@@ -38,6 +38,8 @@ parser.add_argument('--chi2', action="store_true",
 
 parser.add_argument('--noshow', action="store_true",
 		            help = 'prevent the figure window from displaying')
+parser.add_argument('--rpower', type = int, default = 2, required=False,
+                        help = 'r power for display')
 parser.add_argument('--flip', action="store_true",
 		            help = 'flip plot (useful for Lya-QSO cross-corr)')
 
@@ -145,7 +147,7 @@ for w,wedge in zip(range(nw),wedges) :
             r,xidata,xierr,wedge_cov=compute_wedge(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)      
 	else: 
             r,xidata,xierr,wedge_cov=compute_wedge_with_ivar(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin) 
-	scale=r**2
+	scale=r**args.rpower
         if first :
             if args.flip :
                 ax[w].errorbar(r,-scale*xidata,scale*xierr,fmt="o",color=c)
