@@ -74,6 +74,67 @@ def compute_wedge(input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],rbin=4,
     return r,res,np.sqrt(np.diag(cov).copy()),cov
 
 
+def compute_wedge2(input_xi2d,n_t, n_p,input_cov,murange=[0.8,1.0],rpar_min=10, rpar_max =180,rbin=4) : 
+    
+    # indexing
+    rstep=4.
+    rt=((np.arange(n_t*n_p)%n_t+0.5)*rstep).astype(float)
+    rp=((np.arange(n_t*n_p)/n_t+0.5)*rstep).astype(float)
+    rr=np.sqrt(rt**2+rp**2)
+        
+    rt_edges=np.zeros((rt.size,2,2))
+    rp_edges=np.zeros((rp.size,2,2))
+    for i in range(2) :
+        for j in range(2) :
+            rt_edges[:,i,j]=rt[:]-rstep/2.+i*rstep
+            rp_edges[:,i,j]=rp[:]-rstep/2.+j*rstep
+    rr_edges=np.sqrt(rt_edges**2+rp_edges**2)
+    mu_edges=rp_edges/(rr_edges+(rr_edges==0))
+    
+    rp_min=np.min(np.min(rp_edges,axis=-1),axis=-1)
+    rp_max=np.max(np.max(rp_edges,axis=-1),axis=-1)
+    mu_min=np.min(np.min(mu_edges,axis=-1),axis=-1)
+    mu_max=np.max(np.max(mu_edges,axis=-1),axis=-1)
+    
+    nr=int((rpar_max-rpar_min)/rbin)
+    new_rp=rbin/2+np.arange(nr)*rbin
+    
+    wedge_indices=np.where((mu_max>=murange[0])&(mu_min<=murange[1])&(rp_max>=rpar_min)&(rp_min<=rpar_max))[0]
+    wedge_data=input_xi2d[wedge_indices]
+    rt=rt[wedge_indices]
+    rp=rp[wedge_indices]
+    rp_edges=rp_edges[wedge_indices]
+    mu_edges=mu_edges[wedge_indices]
+    rp_min=rp_min[wedge_indices]
+    rp_max=rp_max[wedge_indices]
+    mu_min=mu_min[wedge_indices]
+    mu_max=mu_max[wedge_indices]
+        
+    ndata=wedge_data.size
+    wedge_cov=block(input_cov,wedge_indices)
+    
+    H=np.zeros((nr,ndata))
+    for i in range(nr) :
+        rmin=new_rp[i]-rbin/2.
+        rmax=new_rp[i]+rbin/2.
+        jj=np.where((mu_max>=murange[0])&(mu_min<=murange[1])&(rp_max>=rmin)&(rp_min<=rmax))[0]
+
+        for j,jindex in zip(jj,np.arange(jj.size)) :
+            # find fraction of each pixel in slice rmin,rmax,mu_min,mu_max with subsampling pixel
+            n=7
+            rtb=np.tile(np.linspace(rt[j]-rstep/2.+rstep/n/2,rt[j]+rstep/2.-rstep/n/2.,n),(n,1)).ravel()
+            rpb=np.tile(np.linspace(rp[j]-rstep/2.+rstep/n/2,rp[j]+rstep/2.-rstep/n/2.,n),(n,1)).T.ravel()
+            rrb=np.sqrt(rtb**2+rpb**2)
+            mub=rpb/rrb
+            frac=np.sum((mub>=murange[0])*(mub<=murange[1])*(rpb>=rmin)*(rpb<rmax))/float(n**2)
+            H[i,j]=frac
+        s=np.sum(H[i])
+        if s>0 :
+            H[i] /= s
+    
+    res=H.dot(wedge_data)
+    cov=H.dot(wedge_cov.dot(H.T))
+    return new_rp,res,np.sqrt(np.diag(cov).copy()),cov
 
 def compute_wedge_with_ivar(input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],rbin=4,rpmin=0) : 
     
@@ -142,6 +203,4 @@ def compute_wedge_with_ivar(input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,18
     res=H.dot(wedge_data)
     cov=H.dot(wedge_cov.dot(H.T))
     return r,res,np.sqrt(np.diag(cov).copy()),cov
-
-
 

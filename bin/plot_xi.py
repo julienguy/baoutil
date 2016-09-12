@@ -8,8 +8,7 @@ import string
 from baoutil.io import read_baofit_data
 from baoutil.io import read_baofit_cov
 from baoutil.io import read_baofit_model
-from baoutil.wedge import compute_wedge
-from baoutil.wedge import compute_wedge_with_ivar
+from baoutil.wedge import compute_wedge2
 
 plt.rcParams["font.family"]="serif"
 plt.rcParams["font.size"]=16.0
@@ -23,28 +22,26 @@ parser.add_argument('-c','--cov', type = str, default = None, required=False,
                         help = 'baofit cov (default is guessed from data)')
 parser.add_argument('--mu', type = str, default = None, required=False,
                         help = 'mu range for wedge of the form "mumin:mumax,mumin:mumax ...')
-parser.add_argument('--rrange', type = str, default = "10:180", required=False,
-                        help = 'r range for wedge of the form "rmin:rmax')
+parser.add_argument('--np', type = float, default = None, required=False,
+                        help = 'n_p, default : 50')
+parser.add_argument('--nt', type = float, default = None, required=False,
+                        help = 'n_t, default : 50')
+parser.add_argument('--rpmin', type = float, default = 10, required=False,
+                        help = 'rpmin')
+parser.add_argument('--rpmax', type = float, default = 180, required=False,
+                        help = 'rpmax')
 parser.add_argument('--rbin', type = float, default = 4.0, required=False,
                         help = 'r bin size')
-parser.add_argument('--rpmin', type = float, default = 0, required=False,
-                        help = 'min r_parallel')
 parser.add_argument('--res', type = str, default = None, required=False, nargs='*', action='append', 
                     help = 'baofit residuals file to plot model')
 parser.add_argument('--out', type = str, default = None, required=False,
 		                        help = 'output prefix')
 parser.add_argument('--chi2', action="store_true",
 		help = 'compute chi2 of wedges (if only one data set and model)')
-
 parser.add_argument('--noshow', action="store_true",
 		            help = 'prevent the figure window from displaying')
 parser.add_argument('--flip', action="store_true",
 		            help = 'flip plot (useful for Lya-QSO cross-corr)')
-
-#parser.add_argument('--ivar_weight', action="store_true",
-# help = 'use inverse variance to combine the bins')
-parser.add_argument('--no_ivar_weight', action="store_true",
-                    help = 'do not use inverse variance to combine the bins')
 
 
 args = parser.parse_args()
@@ -54,16 +51,45 @@ cov_filename=args.cov
 
 
 data=[]
-for d2 in args.data :
+name=[]
+cov = []
+for d2 in args.data : # If more than one file 
     for d1 in d2 :
        data.append(read_baofit_data(d1))
+       name.append(d2)
 
-if cov_filename is None :
-    if args.data[0][0].find(".data") :
-        cov_filename=string.replace(args.data[0][0],".data",".cov")
-    else :
-        cov_filename=args.data+".cov"
-cov  = read_baofit_cov(cov_filename,n2d=data[0].size,convert=True)
+print "number of file =", len(name)
+
+for i in range(len(name)):
+    cov_filename=string.replace(args.data[i][0],".data",".cov")
+    cov.append(read_baofit_cov(cov_filename,n2d=data[i].size,convert=True))
+    print "for", name[i][0], ", ",len(data[i]), "points"
+
+if args.np is not None :
+    n_p = args.np 
+else : 
+    n_p = 50
+
+if args.nt is not None :
+    n_t = args.nt 
+else : 
+    n_t = 50
+
+
+if args.rpmin :
+    rpmin = args.rpmin
+else :
+    rpmin = 10.
+
+print "rpmin =", rpmin 
+
+
+if args.rpmax :
+    rpmax = args.rpmax
+else :
+    rpmax = 180.
+
+print "rpmax =", rpmax 
 
 
 
@@ -76,9 +102,6 @@ if args.res is not None :
                 print "error data and model don't have same size"
                 sys.exit(12)
             models.append(mod)
-
-
-
 
 if args.mu :
     wedges=[]
@@ -99,23 +122,6 @@ if args.mu :
         sys.exit(12)
 else :
     wedges= [[0.8,1.0],[0.5,0.8],[0.0,0.5]]
-
-if args.rrange :
-    try :
-        vals=string.split(args.rrange,":")
-        if len(vals)!=2 :
-            print "incorrect format for r range '%s', expect rmin:rmax"%args.rrange
-            sys.exit(12)
-        rmin=string.atof(vals[0])
-        rmax=string.atof(vals[1])
-        rrange=[rmin,rmax]
-    except ValueError,e:
-        print e
-        print "incorrect format for r range '%s', expect rmin:rmax"%args.rrange
-        sys.exit(12)
-else :
-    rrange=[10,180]
-
 
 nw=len(wedges)
 if nw > 1 :
@@ -138,36 +144,27 @@ for w,wedge in zip(range(nw),wedges) :
     
     xidatav=[]
     
-    
-    first=True
-    for d,c in zip(data,data_colors) :
-	if args.no_ivar_weight: 
-            r,xidata,xierr,wedge_cov=compute_wedge(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)      
-	else: 
-            r,xidata,xierr,wedge_cov=compute_wedge_with_ivar(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin) 
-	scale=r**2
-        if first :
-            if args.flip :
-                ax[w].errorbar(r,-scale*xidata,scale*xierr,fmt="o",color=c)
-            else :
-                ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=c)
+            
+    for lab,d,c,i in zip(name,data,data_colors, range(len(name))) :
+        rp,xidata,xierr,wedge_cov=compute_wedge2(d,n_t,n_p,cov[i],murange=wedge,rpar_min=rpmin, rpar_max=rpmax,rbin=args.rbin)      
+        if len(data[i]) == 5000: 
+            rp = rp-200
+        scale=1
+        if args.flip :
+            ax[w].errorbar(rp,-scale*xidata,scale*xierr,fmt="o-",color=c, label=lab[0])
         else :
-             if args.flip :
-                 ax[w].plot(r,-scale*xidata,"o",color=c)
-             else :
-                 ax[w].plot(r,scale*xidata,"o",color=c)
+            ax[w].errorbar(rp,scale*xidata,scale*xierr,fmt="o-",color=c, label=lab[0])
 	ax[w].grid(b=True)
         
         xidatav.append(xidata)
         first=False
     
-    for model,c in zip(models,model_colors)  :
-	if args.no_ivar_weight: r,ximod,junk,junk=compute_wedge(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
-	else: r,ximod,junk,junk=compute_wedge_with_ivar(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
+    for lab,model,c, i in zip(name, models, model_colors, range(len(name)))  :
+	r,ximod,junk,junk=compute_wedge2(d,n_t,n_p,cov[i],murange=wedge,rpar_min=rpmin, rpar_max=rpmax,rbin=args.rbin)
         if args.flip :
-            ax[w].plot(r,-scale*ximod,"-",color=c)
+            ax[w].plot(r,-scale*ximod,"-",color=c, label=lab[0])
         else :
-            ax[w].plot(r,scale*ximod,"-",color=c)
+            ax[w].plot(r,scale*ximod,"-",color=c, label=lab[0])
     
     if args.chi2 and len(data)==1 and len(models)==0 :
         weight=np.linalg.inv(wedge_cov)
@@ -193,9 +190,11 @@ for w,wedge in zip(range(nw),wedges) :
     ax[w].set_title(r"$%2.2f < \mu < %2.2f$"%(wedges[w][0],wedges[w][1]))
 
 
-plt.xlabel(r"$r\mathrm{[h^{-1}Mpc]}$")
+plt.xlabel(r"$r_{||}\mathrm{[h^{-1}Mpc]}$")
 
-if not args.noshow: plt.show()
+if not args.noshow: 
+    plt.legend()
+    plt.show() 
 
 if args.out != None:
 	f.savefig(args.out+".png",bbox_inches="tight")
