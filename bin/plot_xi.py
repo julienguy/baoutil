@@ -7,6 +7,7 @@ import string
 
 from baoutil.io import read_baofit_data
 from baoutil.io import read_baofit_cov
+from baoutil.io import read_baofit_fits
 from baoutil.io import read_baofit_model
 from baoutil.wedge import compute_wedge
 from baoutil.wedge import compute_wedge_with_ivar
@@ -17,10 +18,8 @@ plt.rcParams["font.size"]=16.0
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-parser.add_argument('-d','--data', type = str, default = None, required=True, nargs='*', action='append',
+parser.add_argument('-d','--data', type = str, default = None, required=True, nargs='*',
                         help = 'baofit data')
-parser.add_argument('-c','--cov', type = str, default = None, required=False,
-                        help = 'baofit cov (default is guessed from data)')
 parser.add_argument('--mu', type = str, default = None, required=False,
                         help = 'mu range for wedge of the form "mumin:mumax,mumin:mumax ...')
 parser.add_argument('--rrange', type = str, default = "10:180", required=False,
@@ -29,7 +28,7 @@ parser.add_argument('--rbin', type = float, default = 4.0, required=False,
                         help = 'r bin size')
 parser.add_argument('--rpmin', type = float, default = 0, required=False,
                         help = 'min r_parallel')
-parser.add_argument('--res', type = str, default = None, required=False, nargs='*', action='append', 
+parser.add_argument('--res', type = str, default = None, required=False, nargs='*',
                     help = 'baofit residuals file to plot model')
 parser.add_argument('--out', type = str, default = None, required=False,
 		                        help = 'output prefix')
@@ -51,22 +50,24 @@ parser.add_argument('--no_ivar_weight', action="store_true",
 
 args = parser.parse_args()
 
-cov_filename=args.cov
-
-
 
 data=[]
-for d2 in args.data :
-    for d1 in d2 :
-       data.append(read_baofit_data(d1))
-
-if cov_filename is None :
-    if args.data[0][0].find(".data") :
-        cov_filename=string.replace(args.data[0][0],".data",".cov")
-    else :
-        cov_filename=args.data+".cov"
-cov  = read_baofit_cov(cov_filename,n2d=data[0].size,convert=True)
-
+cov=[]
+for d1 in args.data :
+        if d1.find(".fits")>=0 :
+            d,c=read_baofit_fits(d1)
+            data.append(d)
+            cov.append(c)
+        else :
+            d=read_baofit_data(d1)
+            data.append(d)
+            if d1.find(".data")>=0 :
+                cov_filename=string.replace(d1,".data",".cov")
+                c  = read_baofit_cov(cov_filename,n2d=d.size,convert=True)
+                cov.append(c)
+            else :
+                print "warning, cannot guess covariance of ",d1
+                cov.append("None")
 
 
 models=[]
@@ -101,6 +102,7 @@ if args.mu :
         sys.exit(12)
 else :
     wedges= [[0.8,1.0],[0.5,0.8],[0.0,0.5]]
+    wedges= [[0.95,1.0],[0.8,0.95],[0.5,0.8],[0.0,0.5]]
 
 if args.rrange :
     try :
@@ -142,34 +144,34 @@ for w,wedge in zip(range(nw),wedges) :
     
     
     first=True
-    for d,c in zip(data,data_colors) :
+    for d,c,color in zip(data,cov,data_colors) :
 	if args.no_ivar_weight: 
-            r,xidata,xierr,wedge_cov=compute_wedge(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)      
+            r,xidata,xierr,wedge_cov=compute_wedge(d,c,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)      
 	else: 
-            r,xidata,xierr,wedge_cov=compute_wedge_with_ivar(d,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin) 
+            r,xidata,xierr,wedge_cov=compute_wedge_with_ivar(d,c,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin) 
 	scale=r**args.rpower
         if first :
             if args.flip :
-                ax[w].errorbar(r,-scale*xidata,scale*xierr,fmt="o",color=c)
+                ax[w].errorbar(r,-scale*xidata,scale*xierr,fmt="o",color=color)
             else :
-                ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=c)
+                ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=color)
         else :
              if args.flip :
-                 ax[w].plot(r,-scale*xidata,"o",color=c)
+                 ax[w].plot(r,-scale*xidata,"o",color=color)
              else :
-                 ax[w].plot(r,scale*xidata,"o",color=c)
+                 ax[w].plot(r,scale*xidata,"o",color=color)
 	ax[w].grid(b=True)
         
         xidatav.append(xidata)
         first=False
     
-    for model,c in zip(models,model_colors)  :
-	if args.no_ivar_weight: r,ximod,junk,junk=compute_wedge(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
-	else: r,ximod,junk,junk=compute_wedge_with_ivar(model,cov,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
+    for model,c,color in zip(models,cov,model_colors)  :
+	if args.no_ivar_weight: r,ximod,junk,junk=compute_wedge(model,c,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
+	else: r,ximod,junk,junk=compute_wedge_with_ivar(model,c,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
         if args.flip :
-            ax[w].plot(r,-scale*ximod,"-",color=c)
+            ax[w].plot(r,-scale*ximod,"-",color=color)
         else :
-            ax[w].plot(r,scale*ximod,"-",color=c)
+            ax[w].plot(r,scale*ximod,"-",color=color)
     
     if args.chi2 and len(data)==1 and len(models)==0 :
         weight=np.linalg.inv(wedge_cov)

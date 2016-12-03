@@ -5,6 +5,19 @@ import os.path
 import sys
 from math import sqrt
 
+
+
+def read_baofit_fits(filename) :
+    if filename.find(".fits")<0 :
+        print "error need a fits file"
+        sys.exit(12)
+    h=fits.open(filename)
+    d=h[1].data["DA"]
+    c=h[1].data["CO"]
+    #print d.shape,c.shape
+    return d,c
+
+
 def read_baofit_data(filename) :
     if filename.find(".data")<0 :
         data_filename="%s.data"%filename
