@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import sys
 import argparse
 import string
+import os.path
 
 from baoutil.io import read_baofit_data
 from baoutil.io import read_baofit_cov
@@ -63,8 +64,14 @@ for d1 in args.data :
             data.append(d)
             if d1.find(".data")>=0 :
                 cov_filename=string.replace(d1,".data",".cov")
-                c  = read_baofit_cov(cov_filename,n2d=d.size,convert=True)
-                cov.append(c)
+                if not os.path.isfile(cov_filename) :
+                        cov_filename=string.replace(d1,".data","-cov.fits")
+                if os.path.isfile(cov_filename) :
+                        c  = read_baofit_cov(cov_filename,n2d=d.size,convert=True)
+                        cov.append(c)
+                else :
+                    print "warning, cannot find covariance of ",d1
+                    cov.append("None")    
             else :
                 print "warning, cannot guess covariance of ",d1
                 cov.append("None")
@@ -72,14 +79,17 @@ for d1 in args.data :
 
 models=[]
 if args.res is not None :
-    for res2 in args.res :
-        for res in res2 :
-            mod = read_baofit_model(res,n2d=data[0].size)
-            if data[0].size != mod.size :
-                print "error data and model don't have same size"
-                sys.exit(12)
-            models.append(mod)
-
+    for i,res in enumerate(args.res) :
+        if i<len(data) :
+            d=data[i]
+        else :
+            d=data[0]
+        mod = read_baofit_model(res,n2d=d.size)
+        if d.size != mod.size :
+            print "error data and model don't have same size"
+            sys.exit(12)
+        models.append(mod)
+    
 
 
 
@@ -134,8 +144,8 @@ if args.flip :
 else :
     ax[nw/2].set_ylabel(r"$r^2 \xi(r)\mathrm{[h^{-2}Mpc^2]}$")
 
-data_colors=["b","r","g","k"]
-model_colors=["r","k","k","k"]
+colors=["b","r","g","k"]
+
 
 for w,wedge in zip(range(nw),wedges) :
     print "plotting mu",wedge
@@ -144,34 +154,35 @@ for w,wedge in zip(range(nw),wedges) :
     
     
     first=True
-    for d,c,color in zip(data,cov,data_colors) :
+    for d,c,color in zip(data,cov,colors) :
 	if args.no_ivar_weight: 
             r,xidata,xierr,wedge_cov=compute_wedge(d,c,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)      
 	else: 
             r,xidata,xierr,wedge_cov=compute_wedge_with_ivar(d,c,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin) 
 	scale=r**args.rpower
-        if first :
-            if args.flip :
-                ax[w].errorbar(r,-scale*xidata,scale*xierr,fmt="o",color=color)
-            else :
-                ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=color)
+        
+        if args.flip :
+            ax[w].errorbar(r,-scale*xidata,scale*xierr,fmt="o",color=color)
         else :
-             if args.flip :
-                 ax[w].plot(r,-scale*xidata,"o",color=color)
-             else :
-                 ax[w].plot(r,scale*xidata,"o",color=color)
+            ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=color)
 	ax[w].grid(b=True)
         
         xidatav.append(xidata)
         first=False
-    
-    for model,c,color in zip(models,cov,model_colors)  :
+
+    for i in range(len(models)) :
+        model=models[i]
+        color=colors[i]
+        if len(cov)>i :
+                c=cov[i]
+        else :
+                c=cov[0]
 	if args.no_ivar_weight: r,ximod,junk,junk=compute_wedge(model,c,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
 	else: r,ximod,junk,junk=compute_wedge_with_ivar(model,c,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
         if args.flip :
-            ax[w].plot(r,-scale*ximod,"-",color=color)
+            ax[w].plot(r,-scale*ximod,"-",color=color,linewidth=2)
         else :
-            ax[w].plot(r,scale*ximod,"-",color=color)
+            ax[w].plot(r,scale*ximod,"-",color=color,linewidth=2)
     
     if args.chi2 and len(data)==1 and len(models)==0 :
         weight=np.linalg.inv(wedge_cov)

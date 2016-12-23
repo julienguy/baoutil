@@ -50,12 +50,13 @@ def read_baofit_model(res_filename,n2d=2500) :
 
 def read_baofit_cov(filename,n2d,convert=True) :
     print "reading cov in %s"%filename
-    
     if filename.find(".fits")>0 :
         cov = fits.open(filename)[0].data
         if cov.shape != (n2d,n2d) :
             print "error, incorrect matrix size"
             sys.exit(12)
+        return cov
+
     
     if filename.find(".cov")>0 :
         cov_filename=filename
@@ -77,8 +78,8 @@ def read_baofit_cov(filename,n2d,convert=True) :
             print "%s exists, but use %s which is more recent"%(fits_filename,cov_filename)
     
     if not os.path.isfile(cov_filename) :
-        print "warning, %s doesn't exist, returns null matrix"%cov_filename
-        return np.zeros((n2d,n2d))
+        print "warning, %s doesn't exist, returns unit matrix"%cov_filename
+        return 1e-12*np.eye(n2d)
 
     print "reading %s"%cov_filename
     vals=np.loadtxt(cov_filename).T
