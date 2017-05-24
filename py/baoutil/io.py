@@ -13,7 +13,7 @@ def read_baofit_fits(filename) :
         sys.exit(12)
     h=fits.open(filename)
     d=h[1].data["DA"]
-    c=h[1].data["CO"]
+    c=h[1].data["CO"]    
     #print d.shape,c.shape
     return d,c
 

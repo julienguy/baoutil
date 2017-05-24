@@ -71,10 +71,10 @@ for d1 in args.data :
                         cov.append(c)
                 else :
                     print "warning, cannot find covariance of ",d1
-                    cov.append("None")    
+                    cov.append(np.eye(d.size)*1e-12)    
             else :
                 print "warning, cannot guess covariance of ",d1
-                cov.append("None")
+                cov.append(np.eye(d.size)*1e-12)    
 
 
 models=[]

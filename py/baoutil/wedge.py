@@ -2,6 +2,20 @@ import numpy as np
 from math import sqrt
 import sys
 
+def rprt(n2d) :
+    if n2d==2500 :
+        n1d=np.sqrt(n2d).astype(int)
+        rstep=4.
+        rt=((np.arange(n2d)%n1d+0.5)*rstep).astype(float)
+        rp=((np.arange(n2d)/n1d+0.5)*rstep).astype(float)
+    elif n2d==5000 :
+        nrp=100
+        nrt=50
+        rstep=4.
+        rt=((np.arange(n2d)%nrt+0.5)*rstep).astype(float)
+        rp=((np.arange(n2d)/nrt+0.5-nrt)*rstep).astype(float)
+    return rp,rt,rstep
+
 def block(covmat,indices) :
     res=np.zeros((indices.size,indices.size))
     for i in range(indices.size) :
@@ -10,11 +24,7 @@ def block(covmat,indices) :
 
 def optprofile(input_xi2d,input_cov,rrange=[10,180],rbin=4,rpmin=0) : 
     # indexing
-    n2d=input_xi2d.size
-    n1d=np.sqrt(n2d).astype(int)
-    rstep=4.
-    rt=((np.arange(n2d)%n1d+0.5)*rstep).astype(float)
-    rp=((np.arange(n2d)/n1d+0.5)*rstep).astype(float)
+    rp,rt,rstep = rprt(input_xi2d.size)
     rr=np.sqrt(rt**2+rp**2)
     mu=rp/(rr+(rr==0))
     print "mu=",np.min(mu),np.max(mu)
@@ -87,11 +97,7 @@ def optprofile(input_xi2d,input_cov,rrange=[10,180],rbin=4,rpmin=0) :
 def compute_wedge(input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],rbin=4,rpmin=0) : 
     
     # indexing
-    n2d=input_xi2d.size
-    n1d=np.sqrt(n2d).astype(int)
-    rstep=4.
-    rt=((np.arange(n2d)%n1d+0.5)*rstep).astype(float)
-    rp=((np.arange(n2d)/n1d+0.5)*rstep).astype(float)
+    rp,rt,rstep = rprt(input_xi2d.size)
     rr=np.sqrt(rt**2+rp**2)
         
     rt_edges=np.zeros((rt.size,2,2))
@@ -154,11 +160,7 @@ def compute_wedge(input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],rbin=4,
 def compute_wedge_with_ivar(input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],rbin=4,rpmin=0) : 
     
     # indexing
-    n2d=input_xi2d.size
-    n1d=np.sqrt(n2d).astype(int)
-    rstep=4.
-    rt=((np.arange(n2d)%n1d+0.5)*rstep).astype(float)
-    rp=((np.arange(n2d)/n1d+0.5)*rstep).astype(float)
+    rp,rt,rstep = rprt(input_xi2d.size)
     rr=np.sqrt(rt**2+rp**2)
         
     rt_edges=np.zeros((rt.size,2,2))
