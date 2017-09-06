@@ -14,6 +14,7 @@ def rprt(n2d) :
         rstep=4.
         rt=((np.arange(n2d)%nrt+0.5)*rstep).astype(float)
         rp=((np.arange(n2d)/nrt+0.5-nrt)*rstep).astype(float)
+        rp=np.abs(rp)
     return rp,rt,rstep
 
 def block(covmat,indices) :
