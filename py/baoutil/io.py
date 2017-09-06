@@ -9,7 +9,7 @@ from math import sqrt
 
 def read_baofit_fits(filename) :
     if filename.find(".fits")<0 :
-        print "error need a fits file"
+        print("error need a fits file")
         sys.exit(12)
     h=fits.open(filename)
     d=h[1].data["DA"]
@@ -23,10 +23,10 @@ def read_baofit_data(filename) :
         data_filename="%s.data"%filename
     else :
         data_filename=filename
-    print "reading data in %s"%data_filename
+    print("reading data in %s"%data_filename)
 
     if not os.path.isfile(data_filename) :
-        print "error %s doesn't exist"%data_filename
+        print("error %s doesn't exist"%data_filename)
         sys.exit(12)
 
     vals=np.loadtxt(data_filename).T
@@ -34,7 +34,7 @@ def read_baofit_data(filename) :
 
 def read_baofit_model(res_filename,n2d=2500) :
     if not os.path.isfile(res_filename) :
-        print "error %s doesn't exist"%res_filename
+        print("error %s doesn't exist"%res_filename)
         sys.exit(12)
 
     vals=np.loadtxt(res_filename).T
@@ -49,11 +49,11 @@ def read_baofit_model(res_filename,n2d=2500) :
 
 
 def read_baofit_cov(filename,n2d,convert=True) :
-    print "reading cov in %s"%filename
+    print("reading cov in %s"%filename)
     if filename.find(".fits")>0 :
         cov = fits.open(filename)[0].data
         if cov.shape != (n2d,n2d) :
-            print "error, incorrect matrix size"
+            print("error, incorrect matrix size")
             sys.exit(12)
         return cov
 
@@ -72,16 +72,16 @@ def read_baofit_cov(filename,n2d,convert=True) :
         date_of_cov_filename  = os.path.getmtime(cov_filename)
         date_of_fits_filename =  os.path.getmtime(fits_filename)
         if date_of_fits_filename > date_of_cov_filename :
-            print "using %s"%fits_filename
+            print("using %s"%fits_filename)
             return fits.open(fits_filename)[0].data
         else :
-            print "%s exists, but use %s which is more recent"%(fits_filename,cov_filename)
+            print("%s exists, but use %s which is more recent"%(fits_filename,cov_filename))
     
     if not os.path.isfile(cov_filename) :
-        print "warning, %s doesn't exist, returns unit matrix"%cov_filename
+        print("warning, %s doesn't exist, returns unit matrix"%cov_filename)
         return 1e-12*np.eye(n2d)
 
-    print "reading %s"%cov_filename
+    print("reading %s"%cov_filename)
     vals=np.loadtxt(cov_filename).T
     
     ii=vals[0].astype(int)
@@ -91,7 +91,7 @@ def read_baofit_cov(filename,n2d,convert=True) :
     n=max(np.max(ii),np.max(jj))+1
     cov=np.zeros((n,n))
     if n != n2d :
-        print "error, incorrect matrix size"
+        print("error, incorrect matrix size")
         sys.exit(12)
     
     for i,j,c in zip(ii,jj,cc) :
@@ -100,7 +100,7 @@ def read_baofit_cov(filename,n2d,convert=True) :
     
     if convert :
         fits.writeto(fits_filename,cov,clobber=True)
-        print "wrote %s"%fits_filename
+        print("wrote %s"%fits_filename)
     
     return cov
 

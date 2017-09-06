@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 import argparse
-import string
+
 import os.path
 
 from baoutil.io import read_baofit_data
@@ -63,17 +63,17 @@ for d1 in args.data :
             d=read_baofit_data(d1)
             data.append(d)
             if d1.find(".data")>=0 :
-                cov_filename=string.replace(d1,".data",".cov")
+                cov_filename=d1.replace(".data",".cov")
                 if not os.path.isfile(cov_filename) :
-                        cov_filename=string.replace(d1,".data","-cov.fits")
+                        cov_filename=d1.replace(".data","-cov.fits")
                 if os.path.isfile(cov_filename) :
                         c  = read_baofit_cov(cov_filename,n2d=d.size,convert=True)
                         cov.append(c)
                 else :
-                    print "warning, cannot find covariance of ",d1
+                    print("warning, cannot find covariance of ",d1)
                     cov.append(np.eye(d.size)*1e-12)    
             else :
-                print "warning, cannot guess covariance of ",d1
+                print("warning, cannot guess covariance of ",d1)
                 cov.append(np.eye(d.size)*1e-12)    
 
 
@@ -86,7 +86,7 @@ if args.res is not None :
             d=data[0]
         mod = read_baofit_model(res,n2d=d.size)
         if d.size != mod.size :
-            print "error data and model don't have same size"
+            print("error data and model don't have same size")
             sys.exit(12)
         models.append(mod)
     
@@ -96,19 +96,19 @@ if args.res is not None :
 if args.mu :
     wedges=[]
     try :
-        wedge_strings=string.split(args.mu,",")
+        wedge_strings=args.mu.split(",")
         for wedge_string in wedge_strings :
-            print wedge_string
-            vals=string.split(wedge_string,":")
+            print(wedge_string)
+            vals=wedge_string.split(wedge_string,":")
             if len(vals)!=2 :
-                print "incorrect format for mu range '%s', expect mumin:mumax"%args.mu
+                print("incorrect format for mu range '%s', expect mumin:mumax"%args.mu)
                 sys.exit(12)
-            mumin=string.atof(vals[0])
-            mumax=string.atof(vals[1])
+            mumin=float(vals[0])
+            mumax=float(vals[1])
             wedges.append([mumin,mumax])
-    except ValueError,e:
-        print e
-        print "incorrect format for mu range '%s', expect mumin:mumax"%args.mu
+    except ValueError as e:
+        print(e)
+        print("incorrect format for mu range '%s', expect mumin:mumax"%args.mu)
         sys.exit(12)
 else :
     wedges= [[0.8,1.0],[0.5,0.8],[0.0,0.5]]
@@ -116,16 +116,16 @@ else :
 
 if args.rrange :
     try :
-        vals=string.split(args.rrange,":")
+        vals=args.rrange.split(":")
         if len(vals)!=2 :
-            print "incorrect format for r range '%s', expect rmin:rmax"%args.rrange
+            print("incorrect format for r range '%s', expect rmin:rmax"%args.rrange)
             sys.exit(12)
-        rmin=string.atof(vals[0])
-        rmax=string.atof(vals[1])
+        rmin=float(vals[0])
+        rmax=float(vals[1])
         rrange=[rmin,rmax]
-    except ValueError,e:
-        print e
-        print "incorrect format for r range '%s', expect rmin:rmax"%args.rrange
+    except ValueError as e:
+        print(e)
+        print("incorrect format for r range '%s', expect rmin:rmax"%args.rrange)
         sys.exit(12)
 else :
     rrange=[10,180]
@@ -140,33 +140,33 @@ else :
     ax.append(plt.subplot(1,1,1))
 
 if args.flip :
-    ax[nw/2].set_ylabel(r"$-r^2 \xi(r)\mathrm{[h^{-2}Mpc^2]}$")
+    ax[nw//2].set_ylabel(r"$-r^2 \xi(r)\mathrm{[h^{-2}Mpc^2]}$")
 else :
-    ax[nw/2].set_ylabel(r"$r^2 \xi(r)\mathrm{[h^{-2}Mpc^2]}$")
+    ax[nw//2].set_ylabel(r"$r^2 \xi(r)\mathrm{[h^{-2}Mpc^2]}$")
 
 colors=["b","r","g","k"]
 
 
 for w,wedge in zip(range(nw),wedges) :
-    print "plotting mu",wedge
+    print("plotting mu",wedge)
     
     xidatav=[]
     
     
     first=True
     for d,c,color in zip(data,cov,colors) :
-	if args.no_ivar_weight: 
-            r,xidata,xierr,wedge_cov=compute_wedge(d,c,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)      
-	else: 
-            r,xidata,xierr,wedge_cov=compute_wedge_with_ivar(d,c,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin) 
-	scale=r**args.rpower
-        
+        if args.no_ivar_weight : 
+                r,xidata,xierr,wedge_cov=compute_wedge(d,c,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)      
+        else : 
+                r,xidata,xierr,wedge_cov=compute_wedge_with_ivar(d,c,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin) 
+        scale=r**args.rpower
+
         if args.flip :
             ax[w].errorbar(r,-scale*xidata,scale*xierr,fmt="o",color=color)
         else :
             ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=color)
-	ax[w].grid(b=True)
-        
+        ax[w].grid(b=True)
+
         xidatav.append(xidata)
         first=False
 
@@ -177,33 +177,35 @@ for w,wedge in zip(range(nw),wedges) :
                 c=cov[i]
         else :
                 c=cov[0]
-	if args.no_ivar_weight: r,ximod,junk,junk=compute_wedge(model,c,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
-	else: r,ximod,junk,junk=compute_wedge_with_ivar(model,c,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
+        if args.no_ivar_weight: 
+                r,ximod,junk,junk=compute_wedge(model,c,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
+        else: 
+                r,ximod,junk,junk=compute_wedge_with_ivar(model,c,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
         if args.flip :
-            ax[w].plot(r,-scale*ximod,"-",color=color,linewidth=2)
+                ax[w].plot(r,-scale*ximod,"-",color=color,linewidth=2)
         else :
-            ax[w].plot(r,scale*ximod,"-",color=color,linewidth=2)
+                ax[w].plot(r,scale*ximod,"-",color=color,linewidth=2)
     
     if args.chi2 and len(data)==1 and len(models)==0 :
         weight=np.linalg.inv(wedge_cov)
         res=xidata
         chi2=np.inner(res,weight.dot(res))
         ndata=res.size
-        print "(data-0) chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata)
+        print("(data-0) chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata))
         
     if args.chi2 and len(data)==1 and len(models)==1 :
         weight=np.linalg.inv(wedge_cov)
         res=xidata-ximod
         chi2=np.inner(res,weight.dot(res))
         ndata=res.size
-        print "(data-model) chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata)
+        print("(data-model) chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata))
     
     if args.chi2 and len(data)==2 :
         weight=np.linalg.inv(wedge_cov)
         res=xidatav[0]-xidatav[1]
         chi2=np.inner(res,weight.dot(res))
         ndata=res.size
-        print "(data0-data1) chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata)
+        print("(data0-data1) chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata))
     
     ax[w].set_title(r"$%2.2f < \mu < %2.2f$"%(wedges[w][0],wedges[w][1]))
 

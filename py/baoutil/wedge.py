@@ -28,7 +28,7 @@ def optprofile(input_xi2d,input_cov,rrange=[10,180],rbin=4,rpmin=0) :
     rp,rt,rstep = rprt(input_xi2d.size)
     rr=np.sqrt(rt**2+rp**2)
     mu=rp/(rr+(rr==0))
-    print "mu=",np.min(mu),np.max(mu)
+    print("mu=",np.min(mu),np.max(mu))
     rt_edges=np.zeros((rt.size,2,2))
     rp_edges=np.zeros((rp.size,2,2))
     for i in range(2) :
@@ -76,7 +76,7 @@ def optprofile(input_xi2d,input_cov,rrange=[10,180],rbin=4,rpmin=0) :
             rpb=np.tile(np.linspace(rp[j]-rstep/2.+rstep/n/2,rp[j]+rstep/2.-rstep/n/2.,n),(n,1)).T.ravel()
             rrb=np.sqrt(rtb**2+rpb**2)
             mub=rpb/rrb
-	    w = (rrb>=rmin)*(rrb<rmax)*mub**2  # special weight with mu
+            w = (rrb>=rmin)*(rrb<rmax)*mub**2  # special weight with mu
             frac=np.sum(w)/var[j]
             H[i,j]=frac
             has_zero |= (wedge_data[j]==0)
@@ -211,7 +211,7 @@ def compute_wedge_with_ivar(input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,18
             rpb=np.tile(np.linspace(rp[j]-rstep/2.+rstep/n/2,rp[j]+rstep/2.-rstep/n/2.,n),(n,1)).T.ravel()
             rrb=np.sqrt(rtb**2+rpb**2)
             mub=rpb/rrb
-	    w = (mub>=murange[0]) * (mub<=murange[1]) * (rrb>=rmin) & (rrb<rmax)
+            w = (mub>=murange[0]) * (mub<=murange[1]) * (rrb>=rmin) & (rrb<rmax)
             frac=np.sum(w)/var[j]
             H[i,j]=frac
         s=np.sum(H[i])
