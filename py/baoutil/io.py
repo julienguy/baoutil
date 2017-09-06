@@ -12,10 +12,12 @@ def read_baofit_fits(filename) :
         print("error need a fits file")
         sys.exit(12)
     h=fits.open(filename)
+    rp=h[1].data["RP"]
+    rt=h[1].data["RT"]
     d=h[1].data["DA"]
     c=h[1].data["CO"]    
     #print d.shape,c.shape
-    return d,c
+    return rp,rt,d,c
 
 
 def read_baofit_data(filename) :

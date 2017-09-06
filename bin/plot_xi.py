@@ -6,12 +6,8 @@ import argparse
 
 import os.path
 
-from baoutil.io import read_baofit_data
-from baoutil.io import read_baofit_cov
-from baoutil.io import read_baofit_fits
-from baoutil.io import read_baofit_model
-from baoutil.wedge import compute_wedge
-from baoutil.wedge import compute_wedge_with_ivar
+from baoutil.io import read_baofit_data,read_baofit_cov,read_baofit_fits,read_baofit_model
+from baoutil.wedge import compute_wedge,compute_wedge_with_ivar,block
 
 plt.rcParams["font.family"]="serif"
 plt.rcParams["font.size"]=16.0
@@ -51,31 +47,51 @@ parser.add_argument('--no_ivar_weight', action="store_true",
 
 args = parser.parse_args()
 
-
+rp=None
+rt=None
 data=[]
 cov=[]
 for d1 in args.data :
         if d1.find(".fits")>=0 :
-            d,c=read_baofit_fits(d1)
-            data.append(d)
-            cov.append(c)
-        else :
-            d=read_baofit_data(d1)
-            data.append(d)
-            if d1.find(".data")>=0 :
-                cov_filename=d1.replace(".data",".cov")
-                if not os.path.isfile(cov_filename) :
-                        cov_filename=d1.replace(".data","-cov.fits")
-                if os.path.isfile(cov_filename) :
-                        c  = read_baofit_cov(cov_filename,n2d=d.size,convert=True)
-                        cov.append(c)
+                trp,trt,d,c=read_baofit_fits(d1)            
+                data.append(d)
+                cov.append(c)
+                if rp is None :
+                        rp=trp
+                        rt=trt                        
                 else :
-                    print("warning, cannot find covariance of ",d1)
-                    cov.append(np.eye(d.size)*1e-12)    
-            else :
-                print("warning, cannot guess covariance of ",d1)
-                cov.append(np.eye(d.size)*1e-12)    
+                        if np.max(np.abs((rp-trp)))>0.0001 :
+                                print("rp values don't match")
+                                sys.exit(12)
+                        if np.max(np.abs((rt-trt)))>0.0001 :
+                                print("rt values don't match")
+                                sys.exit(12)
+        else :
+                d=read_baofit_data(d1)
 
+                if rp is None :
+                      print("warning, making up rp and rt values")
+                      n2d=d.size
+                      n1d=np.sqrt(n2d).astype(int)
+                      rstep=4.
+                      rt=((np.arange(n2d)%n1d+0.5)*rstep).astype(float)
+                      rp=((np.arange(n2d)/n1d+0.5)*rstep).astype(float)
+                
+                data.append(d)
+                if d1.find(".data")>=0 :
+                        cov_filename=d1.replace(".data",".cov")
+                        if not os.path.isfile(cov_filename) :
+                                cov_filename=d1.replace(".data","-cov.fits")
+                        if os.path.isfile(cov_filename) :
+                                c  = read_baofit_cov(cov_filename,n2d=d.size,convert=True)
+                                cov.append(c)
+                        else :
+                                print("warning, cannot find covariance of ",d1)
+                                cov.append(np.eye(d.size)*1e-12)    
+                else :
+                        print("warning, cannot guess covariance of ",d1)
+                        cov.append(np.eye(d.size)*1e-12)    
+                
 
 models=[]
 if args.res is not None :
@@ -90,6 +106,10 @@ if args.res is not None :
             sys.exit(12)
         models.append(mod)
     
+
+print("rp range = %f %f"%(np.min(rp),np.max(rp)))
+print("rt range = %f %f"%(np.min(rt),np.max(rt)))
+
 
 
 
@@ -144,8 +164,13 @@ if args.flip :
 else :
     ax[nw//2].set_ylabel(r"$r^2 \xi(r)\mathrm{[h^{-2}Mpc^2]}$")
 
-colors=["b","r","g","k"]
+colors=["b","r","g","k","gray","purple"]
 
+abs_rp=True
+if np.sum(rp<0)>0 and abs_rp :
+        subsamples=[np.where(rp<0)[0],np.where(rp>=0)[0]]
+else :
+        subsamples=[np.arange(rp.size)]
 
 for w,wedge in zip(range(nw),wedges) :
     print("plotting mu",wedge)
@@ -154,37 +179,50 @@ for w,wedge in zip(range(nw),wedges) :
     
     
     first=True
-    for d,c,color in zip(data,cov,colors) :
-        if args.no_ivar_weight : 
-                r,xidata,xierr,wedge_cov=compute_wedge(d,c,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)      
-        else : 
-                r,xidata,xierr,wedge_cov=compute_wedge_with_ivar(d,c,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin) 
-        scale=r**args.rpower
+    color_index=0
+    for d,c in zip(data,cov) :
 
-        if args.flip :
-            ax[w].errorbar(r,-scale*xidata,scale*xierr,fmt="o",color=color)
-        else :
-            ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=color)
-        ax[w].grid(b=True)
+        for subsample in subsamples :
+                print("subsample")
+                color=colors[color_index]
+                color_index+=1
 
-        xidatav.append(xidata)
-        first=False
+                if args.no_ivar_weight : 
+                        r,xidata,xierr,wedge_cov=compute_wedge(rp[subsample],rt[subsample],d[subsample],block(c,subsample),murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)      
+                else : 
+                        r,xidata,xierr,wedge_cov=compute_wedge_with_ivar(rp[subsample],rt[subsample],d[subsample],block(c,subsample),murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin) 
 
-    for i in range(len(models)) :
-        model=models[i]
-        color=colors[i]
-        if len(cov)>i :
-                c=cov[i]
-        else :
-                c=cov[0]
-        if args.no_ivar_weight: 
-                r,ximod,junk,junk=compute_wedge(model,c,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
-        else: 
-                r,ximod,junk,junk=compute_wedge_with_ivar(model,c,murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
-        if args.flip :
-                ax[w].plot(r,-scale*ximod,"-",color=color,linewidth=2)
-        else :
-                ax[w].plot(r,scale*ximod,"-",color=color,linewidth=2)
+                scale=r**args.rpower
+
+                if args.flip :
+                    ax[w].errorbar(r,-scale*xidata,scale*xierr,fmt="o",color=color)
+                else :
+                    ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=color)
+                ax[w].grid(b=True)
+
+                xidatav.append(xidata)
+                first=False
+
+        color_index = 0
+        for i in range(len(models)) :      
+                model=models[i]
+                if len(cov)>i :
+                        c=cov[i]
+                else :
+                        c=cov[0]
+                for subsample in subsamples :
+
+                        color=colors[color_index]
+                        color_index+=1
+                        
+                        if args.no_ivar_weight: 
+                                r,ximod,junk,junk=compute_wedge(rp[subsample],rt[subsample],model[subsample],block(c,subsample),murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
+                        else: 
+                                r,ximod,junk,junk=compute_wedge_with_ivar(rp[subsample],rt[subsample],model[subsample],block(c,subsample),murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
+                        if args.flip :
+                                ax[w].plot(r,-scale*ximod,"-",color=color,linewidth=2)
+                        else :
+                                ax[w].plot(r,scale*ximod,"-",color=color,linewidth=2)
     
     if args.chi2 and len(data)==1 and len(models)==0 :
         weight=np.linalg.inv(wedge_cov)

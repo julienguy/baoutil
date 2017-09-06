@@ -2,6 +2,7 @@ import numpy as np
 from math import sqrt
 import sys
 
+'''
 def rprt(n2d) :
     if n2d==2500 :
         n1d=np.sqrt(n2d).astype(int)
@@ -16,6 +17,7 @@ def rprt(n2d) :
         rp=((np.arange(n2d)/nrt+0.5-nrt)*rstep).astype(float)
         rp=np.abs(rp)
     return rp,rt,rstep
+'''
 
 def block(covmat,indices) :
     res=np.zeros((indices.size,indices.size))
@@ -95,11 +97,13 @@ def optprofile(input_xi2d,input_cov,rrange=[10,180],rbin=4,rpmin=0) :
 
 
     
-def compute_wedge(input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],rbin=4,rpmin=0) : 
+def compute_wedge(rp,rt,input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],rbin=4,rpmin=0) : 
+
+    rp=np.abs(rp)
     
     # indexing
-    rp,rt,rstep = rprt(input_xi2d.size)
-    rr=np.sqrt(rt**2+rp**2)
+    rstep = rt[1]-rt[0]
+    print("rstep=",rstep)
         
     rt_edges=np.zeros((rt.size,2,2))
     rp_edges=np.zeros((rp.size,2,2))
@@ -158,10 +162,13 @@ def compute_wedge(input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],rbin=4,
 
 
 
-def compute_wedge_with_ivar(input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],rbin=4,rpmin=0) : 
+def compute_wedge_with_ivar(rp,rt,input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],rbin=4,rpmin=0) : 
+
+    rp=np.abs(rp)
     
     # indexing
-    rp,rt,rstep = rprt(input_xi2d.size)
+    rstep = rt[1]-rt[0]
+    print("rstep=",rstep)
     rr=np.sqrt(rt**2+rp**2)
         
     rt_edges=np.zeros((rt.size,2,2))
