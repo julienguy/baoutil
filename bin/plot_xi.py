@@ -9,6 +9,12 @@ import os.path
 from baoutil.io import read_baofit_data,read_baofit_cov,read_baofit_fits,read_baofit_model
 from baoutil.wedge import compute_wedge,compute_wedge_with_ivar,block
 
+def getlabel(wedge,sign) :
+        if rp_sign>0 :
+                return "$%3.2f<\mu<%3.2f$"%(wedge[0],wedge[1])
+        else :
+                return "$%3.2f<\mu<%3.2f$"%(-wedge[1],-wedge[0])
+
 plt.rcParams["font.family"]="serif"
 plt.rcParams["font.size"]=16.0
 
@@ -44,6 +50,9 @@ parser.add_argument('--flip', action="store_true",
 parser.add_argument('--no_ivar_weight', action="store_true",
                     help = 'do not use inverse variance to combine the bins')
 
+parser.add_argument('--abs', action="store_true",
+                    help = 'average as a function of |rp|')
+
 
 args = parser.parse_args()
 
@@ -53,17 +62,19 @@ data=[]
 cov=[]
 for d1 in args.data :
         if d1.find(".fits")>=0 :
-                trp,trt,d,c=read_baofit_fits(d1)            
+                trp,trt,d,c=read_baofit_fits(d1)
+                if args.abs :
+                        trp=np.abs(trp)
                 data.append(d)
                 cov.append(c)
                 if rp is None :
                         rp=trp
                         rt=trt                        
                 else :
-                        if np.max(np.abs((rp-trp)))>0.0001 :
+                        if np.max(np.abs((rp-trp)))>01 :
                                 print("rp values don't match")
                                 sys.exit(12)
-                        if np.max(np.abs((rt-trt)))>0.0001 :
+                        if np.max(np.abs((rt-trt)))>01 :
                                 print("rt values don't match")
                                 sys.exit(12)
         else :
@@ -119,7 +130,7 @@ if args.mu :
         wedge_strings=args.mu.split(",")
         for wedge_string in wedge_strings :
             print(wedge_string)
-            vals=wedge_string.split(wedge_string,":")
+            vals=wedge_string.split(":")
             if len(vals)!=2 :
                 print("incorrect format for mu range '%s', expect mumin:mumax"%args.mu)
                 sys.exit(12)
@@ -152,68 +163,81 @@ else :
 
 
 nw=len(wedges)
-if nw > 1 :
-    f, ax = plt.subplots(nw, sharex=True, sharey=False)
-else :
-    f=plt.figure()
-    ax=[]
-    ax.append(plt.subplot(1,1,1))
+
+plt.figure()
+ncols=int(np.sqrt(nw))
+nrows=nw//ncols
+if ncols*nrows < nw : nrows += 1
+ax=[]
+for index in range(1,nw+1) :
+        ax.append(plt.subplot(nrows,ncols,index))
+
 
 if args.flip :
     ax[nw//2].set_ylabel(r"$-r^2 \xi(r)\mathrm{[h^{-2}Mpc^2]}$")
 else :
+    ax[0].set_ylabel(r"$r^2 \xi(r)\mathrm{[h^{-2}Mpc^2]}$")
     ax[nw//2].set_ylabel(r"$r^2 \xi(r)\mathrm{[h^{-2}Mpc^2]}$")
 
 colors=["b","r","g","k","gray","purple"]
 
 abs_rp=True
-if np.sum(rp<0)>0 and abs_rp :
-        subsamples=[np.where(rp<0)[0],np.where(rp>=0)[0]]
+has_neg_rp= np.sum(rp<0)>0
+rp_signs=[]
+if has_neg_rp and abs_rp :        
+        rp_signs=[1,-1]
 else :
-        subsamples=[np.arange(rp.size)]
+        rp_signs=[1]
+
+xidata_array={}
+ximod_array={}
+cov_array={}
+color_array={}
 
 for w,wedge in zip(range(nw),wedges) :
     print("plotting mu",wedge)
-    
-    xidatav=[]
-    
-    
+        
     first=True
     color_index=0
     for d,c in zip(data,cov) :
 
-        for subsample in subsamples :
-                print("subsample")
+        for rp_sign in rp_signs :
+                label = getlabel(wedge,rp_sign)
+                subsample=np.where(rp_sign*rp>=0)[0]
+                        
                 color=colors[color_index]
                 color_index+=1
-
+                
                 if args.no_ivar_weight : 
                         r,xidata,xierr,wedge_cov=compute_wedge(rp[subsample],rt[subsample],d[subsample],block(c,subsample),murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)      
                 else : 
-                        r,xidata,xierr,wedge_cov=compute_wedge_with_ivar(rp[subsample],rt[subsample],d[subsample],block(c,subsample),murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin) 
+                        r,xidata,xierr,wedge_cov=compute_wedge_with_ivar(rp[subsample],rt[subsample],d[subsample],block(c,subsample),murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
 
+                
+                xidata_array[label] = xidata
+                cov_array[label] = wedge_cov
+                color_array[label] = color
+                
                 scale=r**args.rpower
 
                 if args.flip :
-                    ax[w].errorbar(r,-scale*xidata,scale*xierr,fmt="o",color=color)
+                    ax[w].errorbar(r,-scale*xidata,scale*xierr,fmt="o",color=color,label=label)
                 else :
-                    ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=color)
+                    ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=color,label=label)
                 ax[w].grid(b=True)
-
-                xidatav.append(xidata)
+                ax[w].legend(fontsize="small",numpoints=1,loc="lower left")
                 first=False
-
-        color_index = 0
+        
         for i in range(len(models)) :      
                 model=models[i]
                 if len(cov)>i :
                         c=cov[i]
                 else :
                         c=cov[0]
-                for subsample in subsamples :
-
-                        color=colors[color_index]
-                        color_index+=1
+                for rp_sign in rp_signs :
+                        label = getlabel(wedge,rp_sign)
+                        subsample=np.where(rp_sign*rp>=0)[0]
+                        color=color_array[label]
                         
                         if args.no_ivar_weight: 
                                 r,ximod,junk,junk=compute_wedge(rp[subsample],rt[subsample],model[subsample],block(c,subsample),murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
@@ -223,33 +247,40 @@ for w,wedge in zip(range(nw),wedges) :
                                 ax[w].plot(r,-scale*ximod,"-",color=color,linewidth=2)
                         else :
                                 ax[w].plot(r,scale*ximod,"-",color=color,linewidth=2)
-    
+
+                        ximod_array[label] = ximod
+                        
     if args.chi2 and len(data)==1 and len(models)==0 :
-        weight=np.linalg.inv(wedge_cov)
-        res=xidata
-        chi2=np.inner(res,weight.dot(res))
-        ndata=res.size
-        print("(data-0) chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata))
+           
+            weight=np.linalg.inv(wedge_cov)
+            res=xidata
+            chi2=np.inner(res,weight.dot(res))
+            ndata=res.size
+            print("(data-0) chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata))
         
     if args.chi2 and len(data)==1 and len(models)==1 :
-        weight=np.linalg.inv(wedge_cov)
-        res=xidata-ximod
-        chi2=np.inner(res,weight.dot(res))
-        ndata=res.size
-        print("(data-model) chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata))
+            
+            weight=np.linalg.inv(wedge_cov)
+            res=xidata-ximod
+            chi2=np.inner(res,weight.dot(res))
+            ndata=res.size
+            print("(data-model) chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata))
     
     if args.chi2 and len(data)==2 :
-        weight=np.linalg.inv(wedge_cov)
-        res=xidatav[0]-xidatav[1]
-        chi2=np.inner(res,weight.dot(res))
-        ndata=res.size
-        print("(data0-data1) chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata))
-    
-    ax[w].set_title(r"$%2.2f < \mu < %2.2f$"%(wedges[w][0],wedges[w][1]))
+                    
+            weight=np.linalg.inv(wedge_cov)
+            res=xidatav[0]-xidatav[1]
+            chi2=np.inner(res,weight.dot(res))
+            ndata=res.size
+            print("(data0-data1) chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata))
+
+    #ax[w].set_title(r"$%2.2f < \mu < %2.2f$"%(wedges[w][0],wedges[w][1]))
 
 
-plt.xlabel(r"$r\mathrm{[h^{-1}Mpc]}$")
 
+
+for a in ax[nw-2:nw] :
+        a.set_xlabel(r"$r\mathrm{[h^{-1}Mpc]}$")   
 if not args.noshow: plt.show()
 
 if args.out != None:

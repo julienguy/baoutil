@@ -103,7 +103,7 @@ def compute_wedge(rp,rt,input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],r
     
     # indexing
     rstep = rt[1]-rt[0]
-    print("rstep=",rstep)
+    #print("rstep=",rstep)
         
     rt_edges=np.zeros((rt.size,2,2))
     rp_edges=np.zeros((rp.size,2,2))
@@ -168,7 +168,7 @@ def compute_wedge_with_ivar(rp,rt,input_xi2d,input_cov,murange=[0.8,1.0],rrange=
     
     # indexing
     rstep = rt[1]-rt[0]
-    print("rstep=",rstep)
+    #print("rstep=",rstep)
     rr=np.sqrt(rt**2+rp**2)
         
     rt_edges=np.zeros((rt.size,2,2))
