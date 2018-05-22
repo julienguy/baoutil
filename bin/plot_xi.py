@@ -44,6 +44,12 @@ parser.add_argument('--rpower', type = int, default = 2, required=False,
                         help = 'r power for display')
 parser.add_argument('--flip', action="store_true",
 		            help = 'flip plot (useful for Lya-QSO cross-corr)')
+parser.add_argument('--single-plot', action="store_true",
+		            help = 'all wedges on same plot')
+parser.add_argument('--legend-loc', type=str, default="upper left" , required = False,
+		            help = 'legend location')
+parser.add_argument('--title', type=str, default=None , required = False,
+		            help = 'title of first subplot')
 
 #parser.add_argument('--ivar_weight', action="store_true",
 # help = 'use inverse variance to combine the bins')
@@ -52,7 +58,9 @@ parser.add_argument('--no_ivar_weight', action="store_true",
 
 parser.add_argument('--abs', action="store_true",
                     help = 'average as a function of |rp|')
-
+parser.add_argument('--what', type=str, default="LYA(LYA)xLYA(LYA)",
+                    required=False,
+                    help = 'key to find model in h5 file')
 
 args = parser.parse_args()
 
@@ -71,10 +79,10 @@ for d1 in args.data :
                         rp=trp
                         rt=trt                        
                 else :
-                        if np.max(np.abs((rp-trp)))>01 :
+                        if np.max(np.abs((rp-trp)))>4. :
                                 print("rp values don't match")
                                 sys.exit(12)
-                        if np.max(np.abs((rt-trt)))>01 :
+                        if np.max(np.abs((rt-trt)))>4. :
                                 print("rt values don't match")
                                 sys.exit(12)
         else :
@@ -111,7 +119,7 @@ if args.res is not None :
             d=data[i]
         else :
             d=data[0]
-        mod = read_baofit_model(res,n2d=d.size)
+        mod = read_baofit_model(res,n2d=d.size,what=args.what)
         if d.size != mod.size :
             print("error data and model don't have same size")
             sys.exit(12)
@@ -143,7 +151,7 @@ if args.mu :
         sys.exit(12)
 else :
     wedges= [[0.8,1.0],[0.5,0.8],[0.0,0.5]]
-    wedges= [[0.95,1.0],[0.8,0.95],[0.5,0.8],[0.0,0.5]]
+    #wedges= [[0.95,1.0],[0.8,0.95],[0.5,0.8],[0.0,0.5]]
 
 if args.rrange :
     try :
@@ -165,12 +173,19 @@ else :
 nw=len(wedges)
 
 plt.figure()
-ncols=int(np.sqrt(nw))
-nrows=nw//ncols
-if ncols*nrows < nw : nrows += 1
-ax=[]
-for index in range(1,nw+1) :
-        ax.append(plt.subplot(nrows,ncols,index))
+ax={}
+if args.single_plot :
+        ncols=1
+        nrows=1
+        a = plt.subplot(1,1,1)
+        for i in range(nw) :
+                ax[i]=a
+else :
+        ncols=int(np.sqrt(nw))
+        nrows=nw//ncols
+        if ncols*nrows < nw : nrows += 1
+        for index in range(1,nw+1) :
+                ax[index-1] = plt.subplot(nrows,ncols,index)
 
 
 if args.flip :
@@ -194,11 +209,13 @@ ximod_array={}
 cov_array={}
 color_array={}
 
+color_index=0
 for w,wedge in zip(range(nw),wedges) :
     print("plotting mu",wedge)
         
     first=True
-    color_index=0
+    if not args.single_plot : color_index=0 
+    
     for d,c in zip(data,cov) :
 
         for rp_sign in rp_signs :
@@ -225,7 +242,7 @@ for w,wedge in zip(range(nw),wedges) :
                 else :
                     ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=color,label=label)
                 ax[w].grid(b=True)
-                ax[w].legend(fontsize="small",numpoints=1,loc="lower left")
+                ax[w].legend(fontsize="small",numpoints=1,loc=args.legend_loc)
                 first=False
         
         for i in range(len(models)) :      
@@ -257,7 +274,8 @@ for w,wedge in zip(range(nw),wedges) :
             chi2=np.inner(res,weight.dot(res))
             ndata=res.size
             print("(data-0) chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata))
-        
+            
+
     if args.chi2 and len(data)==1 and len(models)==1 :
             
             weight=np.linalg.inv(wedge_cov)
@@ -265,7 +283,13 @@ for w,wedge in zip(range(nw),wedges) :
             chi2=np.inner(res,weight.dot(res))
             ndata=res.size
             print("(data-model) chi2/ndata=%f/%d=%f"%(chi2,ndata,chi2/ndata))
-    
+            if 1 :
+                print("writing this in chi2.fits")
+                import astropy.io.fits as pyfits
+                h=pyfits.HDUList([pyfits.PrimaryHDU(weight),pyfits.ImageHDU(xidata,name="DATA"),pyfits.ImageHDU(ximod,name="MODEL")])
+                h[0].header["EXTNAME"]="WEIGHT"
+                h.writeto("chi2.fits",overwrite=True)
+                
     if args.chi2 and len(data)==2 :
                     
             weight=np.linalg.inv(wedge_cov)
@@ -277,10 +301,11 @@ for w,wedge in zip(range(nw),wedges) :
     #ax[w].set_title(r"$%2.2f < \mu < %2.2f$"%(wedges[w][0],wedges[w][1]))
 
 
+if args.title is not None :
+        ax[0].set_title(args.title)
 
-
-for a in ax[nw-2:nw] :
-        a.set_xlabel(r"$r\mathrm{[h^{-1}Mpc]}$")   
+for i in range(nw-2,nw) :
+        ax[i].set_xlabel(r"$r\mathrm{[h^{-1}Mpc]}$")   
 if not args.noshow: plt.show()
 
 if args.out != None:

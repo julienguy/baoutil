@@ -34,11 +34,30 @@ def read_baofit_data(filename) :
     vals=np.loadtxt(data_filename).T
     return vals[1]
 
-def read_baofit_model(res_filename,n2d=2500) :
+
+def read_baofit_model_hdf5(filename,what='LYA(LYA)xLYA(LYA)') :
+    
+    import h5py
+    f=h5py.File(filename, 'r')
+    if not what in f.keys() :
+        print("error, no key '{}' in {}".format(what,filename))
+        print("keys are:")
+        for k in f.keys() :
+            print("'{}'".format(k))
+        sys.exit(12)
+    res= np.array(f[what]['fit'])
+    f.close()
+    return res
+    
+
+def read_baofit_model(res_filename,n2d=2500,what='LYA(LYA)xLYA(LYA)') :
     if not os.path.isfile(res_filename) :
         print("error %s doesn't exist"%res_filename)
         sys.exit(12)
-
+    if res_filename.find(".h5")>0 :
+        print("reading a hdf5 file ...")
+        return read_baofit_model_hdf5(res_filename,what)
+    
     vals=np.loadtxt(res_filename).T
     i=vals[0].astype(int)
     ni=np.max(i)+1
