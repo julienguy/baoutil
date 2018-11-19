@@ -7,7 +7,7 @@ import argparse
 import os.path
 
 from baoutil.io import read_baofit_data,read_baofit_cov,read_baofit_fits,read_baofit_model
-from baoutil.wedge import compute_wedge,compute_wedge_with_ivar,block
+from baoutil.wedge import compute_wedge,block
 
 def getlabel(wedge,sign) :
         if rp_sign>0 :
@@ -68,6 +68,8 @@ parser.add_argument('--abs', action="store_true",
 parser.add_argument('--what', type=str, default="LYA(LYA)xLYA(LYA)",
                     required=False,
                     help = 'key to find model in h5 file')
+parser.add_argument('--beta', type=float, default=0, 
+		            help = 'beta value for Kaiser weight in profile')
 
 args = parser.parse_args()
 
@@ -250,11 +252,7 @@ for w,wedge in zip(range(nw),wedges) :
                 color=colors[color_index]
                 color_index+=1
                 color_index = color_index%len(colors)
-                
-                if args.no_ivar_weight : 
-                        r,xidata,xierr,wedge_cov=compute_wedge(rp[subsample],rt[subsample],d[subsample],block(c,subsample),murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)      
-                else : 
-                        r,xidata,xierr,wedge_cov=compute_wedge_with_ivar(rp[subsample],rt[subsample],d[subsample],block(c,subsample),murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
+                r,xidata,xierr,wedge_cov=compute_wedge(rp[subsample],rt[subsample],d[subsample],block(c,subsample),murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin,beta=args.beta)
 
                         
                 if args.out_txt :
@@ -288,11 +286,7 @@ for w,wedge in zip(range(nw),wedges) :
                         label = getlabel(wedge,rp_sign)
                         subsample=np.where(rp_sign*rp>=0)[0]
                         color=color_array[label]
-                        
-                        if args.no_ivar_weight: 
-                                r,ximod,junk,junk=compute_wedge(rp[subsample],rt[subsample],model[subsample],block(c,subsample),murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
-                        else: 
-                                r,ximod,junk,junk=compute_wedge_with_ivar(rp[subsample],rt[subsample],model[subsample],block(c,subsample),murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
+                        r,ximod,junk,junk=compute_wedge(rp[subsample],rt[subsample],model[subsample],block(c,subsample),murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin,beta=args.beta)
                         if args.flip :
                                 ax[w].plot(r,-scale*ximod,"-",color=color,linewidth=2)
                         else :
