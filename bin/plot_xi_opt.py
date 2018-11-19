@@ -28,6 +28,10 @@ parser.add_argument('--rpmin', type = float, default = 0, required=False,
                         help = 'min r_parallel')
 parser.add_argument('--res', type = str, default = None, required=False, nargs='*',
                     help = 'baofit residuals file to plot model')
+
+parser.add_argument('--model', type = str, default = None, required=False, nargs='*',
+                    help = 'model file')
+
 parser.add_argument('--out', type = str, default = None, required=False,
 		                        help = 'output prefix')
 parser.add_argument('--chi2', action="store_true",
