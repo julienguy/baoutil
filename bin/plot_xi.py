@@ -33,6 +33,8 @@ parser.add_argument('--rpmin', type = float, default = 0, required=False,
                         help = 'min r_parallel')
 parser.add_argument('--res', type = str, default = None, required=False, nargs='*',
                     help = 'baofit residuals file to plot model')
+parser.add_argument('--model', type = str, default = None, required=False, nargs='*',
+                    help = 'model file')
 parser.add_argument('--out', type = str, default = None, required=False,
 		                        help = 'output prefix')
 parser.add_argument('--chi2', action="store_true",
@@ -124,7 +126,19 @@ if args.res is not None :
             print("error data and model don't have same size")
             sys.exit(12)
         models.append(mod)
-    
+
+if args.model is not None :
+    for i,filename in enumerate(args.model) :
+        if i<len(data) :
+            d=data[i]
+        else :
+            d=data[0]
+        mod = np.loadtxt(filename)
+        if d.size != mod.size :
+            print("error data and model don't have same size")
+            sys.exit(12)
+        models.append(mod)
+     
 
 print("rp range = %f %f"%(np.min(rp),np.max(rp)))
 print("rt range = %f %f"%(np.min(rt),np.max(rt)))
@@ -224,6 +238,7 @@ for w,wedge in zip(range(nw),wedges) :
                         
                 color=colors[color_index]
                 color_index+=1
+                color_index = color_index%len(colors)
                 
                 if args.no_ivar_weight : 
                         r,xidata,xierr,wedge_cov=compute_wedge(rp[subsample],rt[subsample],d[subsample],block(c,subsample),murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)      
@@ -305,6 +320,7 @@ if args.title is not None :
         ax[0].set_title(args.title)
 
 for i in range(nw-2,nw) :
+        if i<0 : i=0
         ax[i].set_xlabel(r"$r\mathrm{[h^{-1}Mpc]}$")   
 if not args.noshow: plt.show()
 
