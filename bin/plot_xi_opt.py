@@ -32,6 +32,8 @@ parser.add_argument('--out', type = str, default = None, required=False,
 		                        help = 'output prefix')
 parser.add_argument('--chi2', action="store_true",
 		help = 'compute chi2 of wedges (if only one data set and model)')
+parser.add_argument('--out-txt', type = str, default = None, required=False,
+		                        help = 'output text file')
 
 parser.add_argument('--noshow', action="store_true",
 		            help = 'prevent the figure window from displaying')
@@ -39,6 +41,8 @@ parser.add_argument('--rpower', type = int, default = 2, required=False,
                         help = 'r power for display')
 parser.add_argument('--flip', action="store_true",
 		            help = 'flip plot (useful for Lya-QSO cross-corr)')
+parser.add_argument('--beta', type=float, default=1.5, 
+		            help = 'beta value for Kaiser weight in profile')
 
 #parser.add_argument('--ivar_weight', action="store_true",
 # help = 'use inverse variance to combine the bins')
@@ -53,24 +57,24 @@ data=[]
 cov=[]
 for d1 in args.data :
         if d1.find(".fits")>=0 :
-            d,c=read_baofit_fits(d1)
-            data.append(d)
-            cov.append(c)
+                trp,trt,d,c=read_baofit_fits(d1)
+                data.append(d)
+                cov.append(c)
         else :
             d=read_baofit_data(d1)
             data.append(d)
             if d1.find(".data")>=0 :
-                cov_filename=string.replace(d1,".data",".cov")
+                cov_filename=d1.replace(".data",".cov")
                 if not os.path.isfile(cov_filename) :
                         cov_filename=string.replace(d1,".data","-cov.fits")
                 if os.path.isfile(cov_filename) :
                         c  = read_baofit_cov(cov_filename,n2d=d.size,convert=True)
                         cov.append(c)
                 else :
-                    print "warning, cannot find covariance of ",d1
+                    print("warning, cannot find covariance of ",d1)
                     cov.append("None")    
             else :
-                print "warning, cannot guess covariance of ",d1
+                print("warning, cannot guess covariance of ",d1)
                 cov.append("None")
 
 
@@ -83,7 +87,7 @@ if args.res is not None :
             d=data[0]
         mod = read_baofit_model(res,n2d=d.size)
         if d.size != mod.size :
-            print "error data and model don't have same size"
+            print("error data and model don't have same size")
             sys.exit(12)
         models.append(mod)
     
@@ -93,16 +97,16 @@ if args.res is not None :
 
 if args.rrange :
     try :
-        vals=string.split(args.rrange,":")
+        vals=args.rrange.split(":")
         if len(vals)!=2 :
-            print "incorrect format for r range '%s', expect rmin:rmax"%args.rrange
+            print("incorrect format for r range '%s', expect rmin:rmax"%args.rrange)
             sys.exit(12)
-        rmin=string.atof(vals[0])
-        rmax=string.atof(vals[1])
+        rmin=float(vals[0])
+        rmax=float(vals[1])
         rrange=[rmin,rmax]
-    except ValueError,e:
-        print e
-        print "incorrect format for r range '%s', expect rmin:rmax"%args.rrange
+    except ValueError as e:
+        print(e)
+        print("incorrect format for r range '%s', expect rmin:rmax"%args.rrange)
         sys.exit(12)
 else :
     rrange=[10,180]
@@ -115,14 +119,24 @@ data_colors=["k","b","r","g","k"]
 model_colors=["b","b","b","gray"]
 model_alphas=[1,0.6,0.4,0.4]
 xidatav=[]
-    
+
+rout=None
+yout=None
+eout=None
+mout=None
+
     
 first=True
 for d,c,color in zip(data,cov,data_colors) :
-        r,xidata,xierr,wedge_cov=optprofile(d,c,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin) 
-	scale=r**args.rpower
+        r,xidata,xierr,wedge_cov=optprofile(d,c,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin,beta=args.beta) 
+        scale=r**args.rpower
         ax.errorbar(r,scale*xidata,scale*xierr,fmt="o",color=color)
-	ax.grid(b=True)
+        ax.grid(b=True)
+        if args.out_txt :
+                rout=r
+                yout=xidata
+                eout=xierr
+                
 
 for i in range(len(models)) :
         model=models[i]
@@ -132,8 +146,10 @@ for i in range(len(models)) :
                 c=cov[i]
         else :
                 c=cov[0]
-	r,ximod,junk,junk=optprofile(model,c,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
+        r,ximod,junk,junk=optprofile(model,c,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin,beta=args.beta)
         ax.plot(r[ximod!=0],(scale*ximod)[ximod!=0],"-",color=color,linewidth=2,alpha=alpha)
+        if args.out_txt :
+                mout = ximod
 
 ax.set_xlabel(r"$r\mathrm{[h^{-1}Mpc]}$")
 
@@ -142,3 +158,10 @@ if not args.noshow: plt.show()
 if args.out != None:
 	f.savefig(args.out+".png",bbox_inches="tight")
 
+if args.out_txt is not None :
+        if mout is None :
+                tmp=np.array([rout,yout,eout])
+        else :
+                tmp=np.array([rout,yout,eout,mout])
+        np.savetxt(args.out_txt,tmp.T)
+        print("wrote",args.out_txt)

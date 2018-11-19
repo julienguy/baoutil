@@ -33,10 +33,15 @@ parser.add_argument('--rpmin', type = float, default = 0, required=False,
                         help = 'min r_parallel')
 parser.add_argument('--res', type = str, default = None, required=False, nargs='*',
                     help = 'baofit residuals file to plot model')
+
 parser.add_argument('--model', type = str, default = None, required=False, nargs='*',
                     help = 'model file')
-parser.add_argument('--out', type = str, default = None, required=False,
+
+parser.add_argument('--out-figure', type = str, default = None, required=False,
 		                        help = 'output prefix')
+
+parser.add_argument('--out-txt', type = str, default = None, required=False,
+		                        help = 'output text file')
 parser.add_argument('--chi2', action="store_true",
 		help = 'compute chi2 of wedges (if only one data set and model)')
 
@@ -224,6 +229,12 @@ cov_array={}
 color_array={}
 
 color_index=0
+
+rout=None
+yout=None
+eout=None
+mout=None
+
 for w,wedge in zip(range(nw),wedges) :
     print("plotting mu",wedge)
         
@@ -245,6 +256,13 @@ for w,wedge in zip(range(nw),wedges) :
                 else : 
                         r,xidata,xierr,wedge_cov=compute_wedge_with_ivar(rp[subsample],rt[subsample],d[subsample],block(c,subsample),murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
 
+                        
+                if args.out_txt :
+                        rout=r
+                        yout=xidata
+                        eout=xierr
+                
+                        
                 
                 xidata_array[label] = xidata
                 cov_array[label] = wedge_cov
@@ -281,7 +299,10 @@ for w,wedge in zip(range(nw),wedges) :
                                 ax[w].plot(r,scale*ximod,"-",color=color,linewidth=2)
 
                         ximod_array[label] = ximod
-                        
+
+                if args.out_txt :
+                        mout = ximod
+
     if args.chi2 and len(data)==1 and len(models)==0 :
            
             weight=np.linalg.inv(wedge_cov)
@@ -319,11 +340,23 @@ for w,wedge in zip(range(nw),wedges) :
 if args.title is not None :
         ax[0].set_title(args.title)
 
-for i in range(nw-2,nw) :
-        if i<0 : i=0
-        ax[i].set_xlabel(r"$r\mathrm{[h^{-1}Mpc]}$")   
+if nw>2 :
+        for i in range(nw-2,nw) :
+                ax[i].set_xlabel(r"$r\mathrm{[h^{-1}Mpc]}$")
+else :
+        ax[0].set_xlabel(r"$r\mathrm{[h^{-1}Mpc]}$")
+
 if not args.noshow: plt.show()
 
-if args.out != None:
-	f.savefig(args.out+".png",bbox_inches="tight")
+if args.out_figure != None:
+	f.savefig(args.out_figure+".png",bbox_inches="tight")
 
+
+if args.out_txt is not None :
+        if mout is None :
+                tmp=np.array([rout,yout,eout])
+        else :
+                tmp=np.array([rout,yout,eout,mout])
+        np.savetxt(args.out_txt,tmp.T)
+        print("wrote",args.out_txt)
+                
