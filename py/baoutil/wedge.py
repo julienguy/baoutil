@@ -2,7 +2,7 @@ import numpy as np
 from math import sqrt
 import sys
 
-'''
+
 def rprt(n2d) :
     if n2d==2500 :
         n1d=np.sqrt(n2d).astype(int)
@@ -17,7 +17,7 @@ def rprt(n2d) :
         rp=((np.arange(n2d)/nrt+0.5-nrt)*rstep).astype(float)
         rp=np.abs(rp)
     return rp,rt,rstep
-'''
+
 
 def block(covmat,indices) :
     res=np.zeros((indices.size,indices.size))
@@ -25,7 +25,7 @@ def block(covmat,indices) :
         res[i,:]=covmat[indices[i],indices]
     return res
 
-def optprofile(input_xi2d,input_cov,rrange=[10,180],rbin=4,rpmin=0) : 
+def optprofile(input_xi2d,input_cov,rrange=[10,180],rbin=4,rpmin=0,beta=1.6) : 
     # indexing
     rp,rt,rstep = rprt(input_xi2d.size)
     rr=np.sqrt(rt**2+rp**2)
@@ -78,7 +78,7 @@ def optprofile(input_xi2d,input_cov,rrange=[10,180],rbin=4,rpmin=0) :
             rpb=np.tile(np.linspace(rp[j]-rstep/2.+rstep/n/2,rp[j]+rstep/2.-rstep/n/2.,n),(n,1)).T.ravel()
             rrb=np.sqrt(rtb**2+rpb**2)
             mub=rpb/rrb
-            w = (rrb>=rmin)*(rrb<rmax)*mub**2  # special weight with mu
+            w = (rrb>=rmin)*(rrb<rmax)*(1+beta*mub**2)**2  # special weight with mu
             frac=np.sum(w)/var[j]
             H[i,j]=frac
             has_zero |= (wedge_data[j]==0)

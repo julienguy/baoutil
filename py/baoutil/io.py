@@ -81,7 +81,7 @@ def read_baofit_cov(filename,n2d,convert=True) :
     
     if filename.find(".cov")>0 :
         cov_filename=filename
-        base_filename=string.replace(filename,".cov","")
+        base_filename=filename.replace(".cov","")
         fits_filename="%s-cov.fits"%base_filename
     else :
         base_filename=filename
