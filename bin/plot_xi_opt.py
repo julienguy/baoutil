@@ -41,6 +41,8 @@ parser.add_argument('--rpower', type = int, default = 2, required=False,
                         help = 'r power for display')
 parser.add_argument('--flip', action="store_true",
 		            help = 'flip plot (useful for Lya-QSO cross-corr)')
+parser.add_argument('--beta', type=float, default=1.5, 
+		            help = 'beta value for Kaiser weight in profile')
 
 #parser.add_argument('--ivar_weight', action="store_true",
 # help = 'use inverse variance to combine the bins')
@@ -126,7 +128,7 @@ mout=None
     
 first=True
 for d,c,color in zip(data,cov,data_colors) :
-        r,xidata,xierr,wedge_cov=optprofile(d,c,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin) 
+        r,xidata,xierr,wedge_cov=optprofile(d,c,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin,beta=args.beta) 
         scale=r**args.rpower
         ax.errorbar(r,scale*xidata,scale*xierr,fmt="o",color=color)
         ax.grid(b=True)
@@ -144,7 +146,7 @@ for i in range(len(models)) :
                 c=cov[i]
         else :
                 c=cov[0]
-        r,ximod,junk,junk=optprofile(model,c,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin)
+        r,ximod,junk,junk=optprofile(model,c,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin,beta=args.beta)
         ax.plot(r[ximod!=0],(scale*ximod)[ximod!=0],"-",color=color,linewidth=2,alpha=alpha)
         if args.out_txt :
                 mout = ximod

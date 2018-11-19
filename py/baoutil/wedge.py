@@ -71,16 +71,14 @@ def optprofile(input_xi2d,input_cov,rrange=[10,180],rbin=4,rpmin=0,beta=1.6) :
         rmax=r[i]+rbin/2.
         jj=np.where((rr_max>=rmin)&(rr_min<=rmax))[0]
         has_zero=False
-        for j,jindex in zip(jj,np.arange(jj.size)) :
+        for j in jj :
             # find fraction of each pixel in slice rmin,rmax,mu_min,mu_max with subsampling pixel
             n=7
             rtb=np.tile(np.linspace(rt[j]-rstep/2.+rstep/n/2,rt[j]+rstep/2.-rstep/n/2.,n),(n,1)).ravel()
             rpb=np.tile(np.linspace(rp[j]-rstep/2.+rstep/n/2,rp[j]+rstep/2.-rstep/n/2.,n),(n,1)).T.ravel()
             rrb=np.sqrt(rtb**2+rpb**2)
             mub=rpb/rrb
-            w = (rrb>=rmin)*(rrb<rmax)*(1+beta*mub**2)**2  # special weight with mu
-            frac=np.sum(w)/var[j]
-            H[i,j]=frac
+            H[i,j]=np.sum((rrb>=rmin)*(rrb<rmax)*(1+beta*mub**2)**2)/var[j] # special weight with mu
             has_zero |= (wedge_data[j]==0)
         s=np.sum(H[i])
         if s>0 :
@@ -143,18 +141,17 @@ def compute_wedge(rp,rt,input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],r
         rmax=r[i]+rbin/2.
         jj=np.where((mu_max>=murange[0])&(mu_min<=murange[1])&(rr_max>=rmin)&(rr_min<=rmax))[0]
 
-        for j,jindex in zip(jj,np.arange(jj.size)) :
+        for j in jj :
             # find fraction of each pixel in slice rmin,rmax,mu_min,mu_max with subsampling pixel
             n=7
             rtb=np.tile(np.linspace(rt[j]-rstep/2.+rstep/n/2,rt[j]+rstep/2.-rstep/n/2.,n),(n,1)).ravel()
             rpb=np.tile(np.linspace(rp[j]-rstep/2.+rstep/n/2,rp[j]+rstep/2.-rstep/n/2.,n),(n,1)).T.ravel()
             rrb=np.sqrt(rtb**2+rpb**2)
             mub=rpb/rrb
-            frac=np.sum((mub>=murange[0])*(mub<=murange[1])*(rrb>=rmin)*(rrb<rmax))/float(n**2)
-            H[i,j]=frac
+            H[i,j]=np.sum((mub>=murange[0])*(mub<=murange[1])*(rrb>=rmin)*(rrb<rmax))
         s=np.sum(H[i])
         if s>0 :
-            H[i] /= s
+            H[i] /= float(s)
     
     res=H.dot(wedge_data)
     cov=H.dot(wedge_cov.dot(H.T))
@@ -210,17 +207,14 @@ def compute_wedge_with_ivar(rp,rt,input_xi2d,input_cov,murange=[0.8,1.0],rrange=
         rmin=r[i]-rbin/2.
         rmax=r[i]+rbin/2.
         jj=np.where((mu_max>=murange[0])&(mu_min<=murange[1])&(rr_max>=rmin)&(rr_min<=rmax))[0]
-
-        for j,jindex in zip(jj,np.arange(jj.size)) :
+        for j in jj :
             # find fraction of each pixel in slice rmin,rmax,mu_min,mu_max with subsampling pixel
             n=7
             rtb=np.tile(np.linspace(rt[j]-rstep/2.+rstep/n/2,rt[j]+rstep/2.-rstep/n/2.,n),(n,1)).ravel()
             rpb=np.tile(np.linspace(rp[j]-rstep/2.+rstep/n/2,rp[j]+rstep/2.-rstep/n/2.,n),(n,1)).T.ravel()
             rrb=np.sqrt(rtb**2+rpb**2)
             mub=rpb/rrb
-            w = (mub>=murange[0]) * (mub<=murange[1]) * (rrb>=rmin) & (rrb<rmax)
-            frac=np.sum(w)/var[j]
-            H[i,j]=frac
+            H[i,j]=np.sum((mub>=murange[0])*(mub<=murange[1])*(rrb>=rmin)*(rrb<rmax))/var[j]
         s=np.sum(H[i])
         if s>0 :
             H[i] /= s
