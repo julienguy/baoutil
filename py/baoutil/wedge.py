@@ -25,8 +25,9 @@ def block(covmat,indices) :
         res[i,:]=covmat[indices[i],indices]
     return res
 
-def compute_wedge(rp,rt,input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],rbin=4,rpmin=0,beta=0) : 
-
+def compute_wedge(rp,rt,input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],rbin=4,rpmin=None,beta=0,rpmax=None) : 
+    
+    orp=rp.copy()
     rp=np.abs(rp)
     
     # indexing
@@ -51,7 +52,10 @@ def compute_wedge(rp,rt,input_xi2d,input_cov,murange=[0.8,1.0],rrange=[10,180],r
     nr=int((rrange[1]-rrange[0])/rbin)
     r=rrange[0]+rbin/2+np.arange(nr)*rbin
     
-    wedge_indices=np.where((mu_max>=murange[0])&(mu_min<=murange[1])&(rr_max>=rrange[0])&(rr_min<=rrange[1])&(rp>rpmin))[0]
+    selection = (mu_max>=murange[0])&(mu_min<=murange[1])&(rr_max>=rrange[0])&(rr_min<=rrange[1])
+    if rpmin is not None : selection &= (orp>rpmin)
+    if rpmax is not None : selection &= (orp<rpmax)
+    wedge_indices=np.where(selection)[0]
     wedge_data=input_xi2d[wedge_indices]
     rr=rr[wedge_indices]
     rt=rt[wedge_indices]

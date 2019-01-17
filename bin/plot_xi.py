@@ -29,8 +29,11 @@ parser.add_argument('--rrange', type = str, default = "10:180", required=False,
                         help = 'r range for wedge of the form "rmin:rmax')
 parser.add_argument('--rbin', type = float, default = 4.0, required=False,
                         help = 'r bin size')
-parser.add_argument('--rpmin', type = float, default = 0, required=False,
+parser.add_argument('--rpmin', type = float, default = None, required=False,
                         help = 'min r_parallel')
+parser.add_argument('--rpmax', type = float, default = None, required=False,
+                        help = 'max r_parallel')
+
 parser.add_argument('--res', type = str, default = None, required=False, nargs='*',
                     help = 'baofit residuals file to plot model')
 
@@ -70,6 +73,8 @@ parser.add_argument('--what', type=str, default="LYA(LYA)xLYA(LYA)",
                     help = 'key to find model in h5 file')
 parser.add_argument('--beta', type=float, default=0, 
 		            help = 'beta value for Kaiser weight in profile')
+parser.add_argument('--same-color', action='store_true', 
+		            help = 'force same color for model and data')
 
 args = parser.parse_args()
 
@@ -88,6 +93,7 @@ for d1 in args.data :
                         rp=trp
                         rt=trt                        
                 else :
+                        continue
                         if np.max(np.abs((rp-trp)))>4. :
                                 print("rp values don't match")
                                 sys.exit(12)
@@ -252,7 +258,7 @@ for w,wedge in zip(range(nw),wedges) :
                 color=colors[color_index]
                 color_index+=1
                 color_index = color_index%len(colors)
-                r,xidata,xierr,wedge_cov=compute_wedge(rp[subsample],rt[subsample],d[subsample],block(c,subsample),murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin,beta=args.beta)
+                r,xidata,xierr,wedge_cov=compute_wedge(rp[subsample],rt[subsample],d[subsample],block(c,subsample),murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin,beta=args.beta,rpmax=args.rpmax)
 
                         
                 if args.out_txt :
@@ -285,7 +291,12 @@ for w,wedge in zip(range(nw),wedges) :
                 for rp_sign in rp_signs :
                         label = getlabel(wedge,rp_sign)
                         subsample=np.where(rp_sign*rp>=0)[0]
-                        color=color_array[label]
+                        if len(data)>1 or args.same_color :
+                                color=color_array[label]
+                        else :
+                                color=colors[color_index]
+                                color_index+=1
+                                color_index = color_index%len(colors)
                         r,ximod,junk,junk=compute_wedge(rp[subsample],rt[subsample],model[subsample],block(c,subsample),murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin,beta=args.beta)
                         if args.flip :
                                 ax[w].plot(r,-scale*ximod,"-",color=color,linewidth=2)
@@ -338,7 +349,8 @@ if nw>2 :
         for i in range(nw-2,nw) :
                 ax[i].set_xlabel(r"$r\mathrm{[h^{-1}Mpc]}$")
 else :
-        ax[0].set_xlabel(r"$r\mathrm{[h^{-1}Mpc]}$")
+        i = len(ax)-1
+        ax[i].set_xlabel(r"$r\mathrm{[h^{-1}Mpc]}$")
 
 if not args.noshow: plt.show()
 
