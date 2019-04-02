@@ -14,7 +14,7 @@ f = h5py.File(args.infile)
 names = [k for k in f]
 print("names are",names)
 if args.what is None : 
-    args.what = names[0]
+    args.what = names[-1]
     print("will show:",args.what)
 
 
