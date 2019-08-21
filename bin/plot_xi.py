@@ -56,10 +56,12 @@ parser.add_argument('--flip', action="store_true",
 		            help = 'flip plot (useful for Lya-QSO cross-corr)')
 parser.add_argument('--single-plot', action="store_true",
 		            help = 'all wedges on same plot')
-parser.add_argument('--legend-loc', type=str, default="upper left" , required = False,
+parser.add_argument('--legend-loc', type=str, default="lower right" , required = False,
 		            help = 'legend location')
 parser.add_argument('--title', type=str, default=None , required = False,
 		            help = 'title of first subplot')
+parser.add_argument('--labels', type=str, default=None , required = False, nargs="*",
+		            help = 'labels')
 
 #parser.add_argument('--ivar_weight', action="store_true",
 # help = 'use inverse variance to combine the bins')
@@ -82,7 +84,7 @@ rp=None
 rt=None
 data=[]
 cov=[]
-for d1 in args.data :
+for dataindex,d1 in enumerate(args.data) :
         if d1.find(".fits")>=0 :
                 trp,trt,d,c=read_baofit_fits(d1)
                 if args.abs :
@@ -216,10 +218,19 @@ else :
 
 
 if args.flip :
-    ax[nw//2].set_ylabel(r"$-r^2 \xi(r)\mathrm{[h^{-2}Mpc^2]}$")
+        sign="-"
 else :
-    ax[0].set_ylabel(r"$r^2 \xi(r)\mathrm{[h^{-2}Mpc^2]}$")
-    ax[nw//2].set_ylabel(r"$r^2 \xi(r)\mathrm{[h^{-2}Mpc^2]}$")
+        sign=""
+if args.rpower==0 : 
+        label="$%s\\xi(r)$"%sign
+else :
+        p=args.rpower
+        label="%s$r^%d \\xi(r)\\mathrm{[h^{-%d}Mpc^%d]}$"%(sign,p,p,p)
+
+
+for i in range(0,nw,ncols) :
+        ax[i].set_ylabel(r"%s"%label)
+
 
 colors=["b","r","g","k","gray","purple"]
 
@@ -237,6 +248,7 @@ cov_array={}
 color_array={}
 
 color_index=0
+other_color_index=0
 
 rout=None
 yout=None
@@ -249,10 +261,14 @@ for w,wedge in zip(range(nw),wedges) :
     first=True
     if not args.single_plot : color_index=0 
     
-    for d,c in zip(data,cov) :
+    for dataindex,d,c in zip(np.arange(len(data)),data,cov) :
 
         for rp_sign in rp_signs :
                 label = getlabel(wedge,rp_sign)
+                if args.labels is not None and len(args.labels) == len(data) :
+                        full_label = args.labels[dataindex]+" "+label
+                else :
+                        full_label = label
                 subsample=np.where(rp_sign*rp>=0)[0]
                         
                 color=colors[color_index]
@@ -275,13 +291,13 @@ for w,wedge in zip(range(nw),wedges) :
                 scale=r**args.rpower
 
                 if args.flip :
-                    ax[w].errorbar(r,-scale*xidata,scale*xierr,fmt="o",color=color,label=label)
+                    ax[w].errorbar(r,-scale*xidata,scale*xierr,fmt="o",color=color,label=full_label)
                 else :
-                    ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=color,label=label)
+                    ax[w].errorbar(r,scale*xidata,scale*xierr,fmt="o",color=color,label=full_label)
                 ax[w].grid(b=True)
                 ax[w].legend(fontsize="small",numpoints=1,loc=args.legend_loc)
                 first=False
-        
+        if not args.single_plot : other_color_index=0 
         for i in range(len(models)) :      
                 model=models[i]
                 if len(cov)>i :
@@ -290,13 +306,18 @@ for w,wedge in zip(range(nw),wedges) :
                         c=cov[0]
                 for rp_sign in rp_signs :
                         label = getlabel(wedge,rp_sign)
+                        
                         subsample=np.where(rp_sign*rp>=0)[0]
-                        if len(data)>1 or args.same_color :
+                        if len(data)>1 :
                                 color=color_array[label]
                         else :
                                 color=colors[color_index]
                                 color_index+=1
                                 color_index = color_index%len(colors)
+                        if args.same_color :
+                               color=colors[other_color_index]
+                               other_color_index+=1
+                               other_color_index = other_color_index%len(colors)  
                         r,ximod,junk,junk=compute_wedge(rp[subsample],rt[subsample],model[subsample],block(c,subsample),murange=wedge,rrange=rrange,rbin=args.rbin,rpmin=args.rpmin,beta=args.beta)
                         if args.flip :
                                 ax[w].plot(r,-scale*ximod,"-",color=color,linewidth=2)
@@ -345,11 +366,7 @@ for w,wedge in zip(range(nw),wedges) :
 if args.title is not None :
         ax[0].set_title(args.title)
 
-if nw>2 :
-        for i in range(nw-2,nw) :
-                ax[i].set_xlabel(r"$r\mathrm{[h^{-1}Mpc]}$")
-else :
-        i = len(ax)-1
+for i in range(nw-ncols,nw) :
         ax[i].set_xlabel(r"$r\mathrm{[h^{-1}Mpc]}$")
 
 if not args.noshow: plt.show()

@@ -10,11 +10,14 @@ parser.add_argument('-w','--what', type = str, default = None, required=False,he
 
 args = parser.parse_args()
 
-f = h5py.File(args.infile)
+f = h5py.File(args.infile,mode="r")
 names = [k for k in f]
 print("names are",names)
 if args.what is None : 
-    args.what = names[-1]
+    for what in names :
+        if what != "best fit" :
+            args.what = what
+            break
     print("will show:",args.what)
 
 
